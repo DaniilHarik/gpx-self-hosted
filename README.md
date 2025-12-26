@@ -19,6 +19,10 @@ This is a personal project with specialized requirements.
 * **Security**: Currently intended for **local/trusted network use**. See [SECURITY.md](SECURITY.md) for current hardening status and recommendations.
 * **Targeted Use**: Initially developed with specific features for Estonia (e.g., Maa-amet and OpenTopoMap layers), but extensible to any region.
 
+### Prerequisites
+* [Go](https://go.dev/dl/) installed.
+* [Node.js](https://nodejs.org/) installed (for frontend tests).
+
 ## Quick start
 
 1. Put your `.gpx` files under `data/Activities/` (subfolders are fine). Plans go under `data/Plans/`.
@@ -105,10 +109,6 @@ Any folder name works, but the ones below get custom icons in the UI (case-insen
 | flights | plane | Alias of flight |
 
 ## Configuration
-
-### Prerequisites
-* [Go](https://go.dev/dl/) installed.
-* [Node.js](https://nodejs.org/) installed (for frontend tests).
 
 ### Tile providers
 Providers are configured server-side in `internal/config/config.go`. Current keys:
