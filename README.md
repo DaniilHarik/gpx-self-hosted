@@ -1,7 +1,7 @@
 # Self-Hosted GPX Viewer (Offline-Friendly)
 
-[![Backend Coverage](https://codecov.io/gh/daniilharik/gpx-self-hosted/graph/badge.svg?flag=backend)](https://codecov.io/gh/daniilharik/gpx-self-hosted)
-[![Frontend Coverage](https://codecov.io/gh/daniilharik/gpx-self-hosted/graph/badge.svg?flag=frontend)](https://codecov.io/gh/daniilharik/gpx-self-hosted)
+[![Backend Coverage](https://img.shields.io/codecov/c/github/daniilharik/gpx-self-hosted?flag=backend&label=Backend)](https://codecov.io/gh/daniilharik/gpx-self-hosted)
+[![Frontend Coverage](https://img.shields.io/codecov/c/github/daniilharik/gpx-self-hosted?flag=frontend&label=Frontend)](https://codecov.io/gh/daniilharik/gpx-self-hosted)
 
 A lightweight, self-hosted web application for browsing and visualizing GPX tracks locally. 
 
@@ -139,8 +139,10 @@ Run with `-offline` to block all upstream tile downloads and serve map tiles fro
 - Go: `go test ./...`
 - Frontend (Jest): `npm test`
 
-<details>
-<summary><b>Maa-amet tile ranges (Estonia bbox)</b></summary>
+
+## Tile ranges
+
+### Maa-amet tile ranges (Estonia bbox)
 
 The ranges below use an Estonia bbox (lon 21.0–28.3, lat 57.45–59.85) and Maa-amet’s TMS scheme (Y flipped vs XYZ). Per-zoom x/y ranges and tile counts:
 
@@ -169,4 +171,3 @@ z  x_min–x_max    y_tms_min–y_tms_max   tiles
 ```
 
 Total tiles (z0–z19): **95,317,041**.
-</details>
