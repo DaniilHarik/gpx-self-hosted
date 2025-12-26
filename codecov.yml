@@ -1,0 +1,27 @@
+coverage:
+  status:
+    project:
+      default:
+        # Settings for the overall project coverage
+        target: auto
+        threshold: 1%
+    patch:
+      default:
+        # Settings for the patch coverage (changes in PRs)
+        target: auto
+        threshold: 1%
+
+flags:
+  backend:
+    paths:
+      - cmd/
+      - internal/
+    carryforward: true
+  frontend:
+    paths:
+      - static/
+    carryforward: true
+
+comment:
+  layout: "reach,diff,flags,files"
+  behavior: default
