@@ -1,6 +1,7 @@
 # Self-Hosted GPX Viewer (Offline-Friendly)
 
-[![codecov](https://codecov.io/gh/daniilharik/gpx-self-hosted/graph/badge.svg)](https://codecov.io/gh/daniilharik/gpx-self-hosted)
+[![Backend Coverage](https://codecov.io/gh/daniilharik/gpx-self-hosted/graph/badge.svg?flag=backend)](https://codecov.io/gh/daniilharik/gpx-self-hosted)
+[![Frontend Coverage](https://codecov.io/gh/daniilharik/gpx-self-hosted/graph/badge.svg?flag=frontend)](https://codecov.io/gh/daniilharik/gpx-self-hosted)
 
 A lightweight, self-hosted web application for browsing and visualizing GPX tracks locally. 
 

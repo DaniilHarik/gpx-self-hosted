@@ -31,9 +31,18 @@ jobs:
       - name: Jest tests
         run: npm test -- --coverage
 
-      - name: Upload coverage to Codecov
+      - name: Upload Backend Coverage
         uses: codecov/codecov-action@v5
         with:
-          files: ./coverage.txt,./coverage/lcov.info
+          files: ./coverage.txt
+          flags: backend
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Upload Frontend Coverage
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage/lcov.info
+          flags: frontend
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
