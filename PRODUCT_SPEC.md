@@ -101,6 +101,13 @@ See [SECURITY.md](SECURITY.md) for the full hardening roadmap. Key focus areas i
 - **Route snapping hint**: optional toggle to visualize average direction arrows or start/end markers for clarity in dense areas.
 - **Tile provider health**: surface a small status indicator showing recent upstream error rates and a quick retry.
 - **Lightweight annotations**: let users add text notes to a track (stored locally in a sidecar JSON) without editing the GPX.
+- **Animated Track Playback**: Visual "replay" of the track on the map with adjustable speed and a progress slider.
+- **Speed/Grade Heatmaps**: Toggleable overlay that colors the track polyline based on instantaneous speed or incline (slope).
+- **Drag-and-Drop Upload**: Overlay that allows users to drop `.gpx` files or folders directly into the browser to "upload" (save) them to the backend `data/` directory.
+- **Static Map Snapshots**: Export a high-resolution PNG/JPEG of the current map view including all active tracks and annotations.
+- **Waypoint Browser**: A dedicated sidebar tab or modal to browse, search, and "teleport" to waypoints within the selected GPX files.
+- **Metric/Imperial Toggle**: User-facing setting to switch all stats (distance, speed, elevation) between Kilometers/Meters and Miles/Feet.
+- **Public/Private Toggle**: For users who might eventually expose the app to a network, a way to mark specific folders/files as "private" (hidden from the index unless authorized).
 
 ### Rejected
 - **Interactive Elevation Profile**: Replace the static stats with an interactive chart (distance vs elevation) using a library like Chart.js or D3. Hovering over the graph should show the corresponding location on the map.
