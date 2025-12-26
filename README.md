@@ -21,7 +21,7 @@ This is a personal project with specialized requirements.
 
 ### Prerequisites
 * [Go](https://go.dev/dl/) installed.
-* [Node.js](https://nodejs.org/) installed (for frontend tests).
+* [Node.js](https://nodejs.org/) installed (for frontend tests only, optional).
 
 ## Quick start
 
@@ -50,11 +50,12 @@ The backend is written in **Go** (Golang) and uses the standard library (`net/ht
 *   **Service Layer**: Business logic is decoupled into `internal/service/` for better testability and maintainability.
 
 ### 2. Frontend (HTML/JS/CSS)
-The frontend is a Single Page Application (SPA) built with vanilla JavaScript.
+The frontend is a Single Page Application (SPA) purposefully built with vanilla JavaScript to keep dependencies minimal.
+
+The frontend is built with the following dependencies:
 *   **Leaflet.js**: Handles the map rendering and user interaction (pan, zoom).
 *   **leaflet-gpx**: A client-side plugin that parses GPX XML data and renders it as Polyline layers on the map. It also extracts track metadata (elevation, time, distance).
 *   **Leaflet.draw**: Enables drawing and exporting new GPX tracks directly from the map.
-*   **Navigation**: A sidebar allows users to filter and select tracks.
 
 ### Directory Structure
 ```
