@@ -3,7 +3,7 @@
 [![Backend Coverage](https://img.shields.io/codecov/c/github/daniilharik/gpx-self-hosted?flag=backend&label=Backend)](https://codecov.io/gh/daniilharik/gpx-self-hosted)
 [![Frontend Coverage](https://img.shields.io/codecov/c/github/daniilharik/gpx-self-hosted?flag=frontend&label=Frontend)](https://codecov.io/gh/daniilharik/gpx-self-hosted)
 
-A lightweight, self-hosted web application for browsing and visualizing GPX tracks locally. 
+A lightweight, self-hosted web application for browsing, visualizing, and drawing GPX tracks locally. 
 
 ![App Screenshot](docs/screenshot.png)
 
@@ -49,6 +49,7 @@ The backend is written in **Go** (Golang) and uses the standard library (`net/ht
 The frontend is a Single Page Application (SPA) built with vanilla JavaScript.
 *   **Leaflet.js**: Handles the map rendering and user interaction (pan, zoom).
 *   **leaflet-gpx**: A client-side plugin that parses GPX XML data and renders it as Polyline layers on the map. It also extracts track metadata (elevation, time, distance).
+*   **Leaflet.draw**: Enables drawing and exporting new GPX tracks directly from the map.
 *   **Navigation**: A sidebar allows users to filter and select tracks.
 
 ### Directory Structure
