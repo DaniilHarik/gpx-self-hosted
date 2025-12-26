@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -142,5 +143,56 @@ func TestGetTile_Retry(t *testing.T) {
 
 	if attempts != 2 {
 		t.Errorf("expected 2 attempts, got %d", attempts)
+	}
+}
+
+func TestGetTile_Offline(t *testing.T) {
+	cfg := &config.Config{
+		Offline: true,
+		Providers: map[string]config.TileProviderConfig{
+			"test": {Name: "Test"},
+		},
+	}
+	service := NewService(cfg)
+
+	_, err := service.GetTile(context.Background(), "test", "1", "2", "3.png")
+	if err == nil || err.Error() != "offline mode" {
+		t.Errorf("expected 'offline mode' error, got %v", err)
+	}
+}
+
+func TestGetTile_Upstream404(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer ts.Close()
+
+	cfg := &config.Config{
+		CacheDir:      t.TempDir(),
+		ClientTimeout: time.Second,
+		MaxRetries:    3,
+		Providers: map[string]config.TileProviderConfig{
+			"test": {
+				URLTemplate: ts.URL + "/{z}/{x}/{y}.png",
+			},
+		},
+	}
+	service := NewService(cfg)
+
+	_, err := service.GetTile(context.Background(), "test", "1", "2", "3.png")
+	if err == nil || !strings.Contains(err.Error(), "upstream status 404") {
+		t.Errorf("expected upstream status 404 error, got %v", err)
+	}
+}
+
+func TestGetTile_UnknownProvider(t *testing.T) {
+	cfg := &config.Config{
+		Providers: map[string]config.TileProviderConfig{},
+	}
+	service := NewService(cfg)
+
+	_, err := service.GetTile(context.Background(), "unknown", "1", "2", "3.png")
+	if err == nil || err.Error() != "unknown provider" {
+		t.Errorf("expected 'unknown provider' error, got %v", err)
 	}
 }

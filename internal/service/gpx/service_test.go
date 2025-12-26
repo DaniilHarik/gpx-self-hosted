@@ -62,3 +62,21 @@ func TestListFiles(t *testing.T) {
 		}
 	}
 }
+
+func TestListFiles_RootsAreFiles(t *testing.T) {
+	dataDir := t.TempDir()
+	// Create "Activities" as a file instead of a directory
+	if err := os.WriteFile(filepath.Join(dataDir, "Activities"), []byte("not a dir"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	service := NewService(dataDir)
+	result, err := service.ListFiles()
+	if err != nil {
+		t.Fatalf("ListFiles failed: %v", err)
+	}
+
+	if len(result) != 0 {
+		t.Errorf("expected 0 files, got %d", len(result))
+	}
+}

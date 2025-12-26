@@ -193,6 +193,27 @@ func TestListGPXHandler(t *testing.T) {
 	}
 }
 
+func TestListGPXHandler_Error(t *testing.T) {
+	mockGPX := &mockGPXService{
+		listFilesFunc: func() ([]model.GPXFile, error) {
+			return nil, &customError{"scan error"}
+		},
+	}
+	h := New(nil, mockGPX, nil)
+
+	req := httptest.NewRequest("GET", "/api/gpx", nil)
+	rr := httptest.NewRecorder()
+
+	h.ListGPXFiles(rr, req)
+
+	if rr.Code != http.StatusInternalServerError {
+		t.Errorf("expected 500, got %d", rr.Code)
+	}
+	if !strings.Contains(rr.Body.String(), "scan error") {
+		t.Errorf("expected error message, got %q", rr.Body.String())
+	}
+}
+
 func TestStatusHandler(t *testing.T) {
 	mockTiles := &mockTilesService{
 		getStatsFunc: func() model.StatusResponse {

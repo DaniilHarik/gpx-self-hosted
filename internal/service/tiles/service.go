@@ -111,6 +111,11 @@ func (s *Service) GetTile(ctx context.Context, providerName, z, x, yPng string) 
 		atomic.AddUint64(&s.cacheErrors, 1)
 		return "", fmt.Errorf("failed to fetch tile: %w", err)
 	}
+
+	if resp == nil {
+		atomic.AddUint64(&s.cacheErrors, 1)
+		return "", fmt.Errorf("failed to fetch tile: nil response")
+	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {

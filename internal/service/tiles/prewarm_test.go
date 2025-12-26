@@ -2,7 +2,10 @@ package tiles
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"testing"
+	"time"
 
 	"gpx-self-host/internal/config"
 	"gpx-self-host/internal/model"
@@ -72,6 +75,23 @@ func TestLatToTileY(t *testing.T) {
 	}
 }
 
+func TestClampLat(t *testing.T) {
+	tests := []struct {
+		lat, expected float64
+	}{
+		{90, mercatorMaxLat},
+		{-90, -mercatorMaxLat},
+		{0, 0},
+		{45, 45},
+	}
+	for _, tc := range tests {
+		got := clampLat(tc.lat)
+		if got != tc.expected {
+			t.Errorf("clampLat(%f) = %f; want %f", tc.lat, got, tc.expected)
+		}
+	}
+}
+
 func TestXSegmentsForBounds(t *testing.T) {
 	// Normal case
 	segs := xSegmentsForBounds(0, 10, 10)
@@ -125,5 +145,76 @@ func TestPrewarmView_Errors(t *testing.T) {
 	})
 	if err == nil || err.Error() != "too many tiles" {
 		t.Errorf("expected 'too many tiles' error, got %v", err)
+	}
+}
+
+func TestPrewarmView_Success(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("tile data"))
+	}))
+	defer ts.Close()
+
+	cfg := &config.Config{
+		CacheDir:      t.TempDir(),
+		ClientTimeout: time.Second,
+		MaxRetries:    1,
+		Providers: map[string]config.TileProviderConfig{
+			"test": {
+				ZoomRange:   [2]int{0, 2},
+				URLTemplate: ts.URL + "/{z}/{x}/{y}.png",
+			},
+		},
+	}
+	service := NewService(cfg)
+	ctx := context.Background()
+
+	resp, err := service.PrewarmView(ctx, model.PrewarmViewRequest{
+		ProviderKey: "test",
+		Bounds:      model.BoundsDTO{North: 10, South: 0, West: 0, East: 10},
+		CenterZoom:  1,
+		ZoomRadius:  0,
+	})
+	if err != nil {
+		t.Fatalf("PrewarmView failed: %v", err)
+	}
+	if resp.Total == 0 {
+		t.Error("expected positive total tiles")
+	}
+	if resp.Ok != resp.Total {
+		t.Errorf("expected %d ok tiles, got %d", resp.Total, resp.Ok)
+	}
+}
+
+func TestPrewarmView_ZeroTiles(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	cfg := &config.Config{
+		CacheDir: t.TempDir(),
+		Providers: map[string]config.TileProviderConfig{
+			"test": {
+				ZoomRange:   [2]int{10, 12},
+				URLTemplate: ts.URL + "/{z}/{x}/{y}.png",
+			},
+		},
+	}
+	service := NewService(cfg)
+	ctx := context.Background()
+
+	resp, err := service.PrewarmView(ctx, model.PrewarmViewRequest{
+		ProviderKey: "test",
+		Bounds:      model.BoundsDTO{North: 0, South: 0, West: 0, East: 0},
+		CenterZoom:  10,
+		ZoomRadius:  0,
+	})
+	if err != nil {
+		t.Fatalf("PrewarmView failed: %v", err)
+	}
+	// Even with 0x0 bounds, we get at least 1 tile due to floor/rounding logic.
+	if resp.Total == 0 {
+		t.Errorf("expected at least 1 tile, got %d", resp.Total)
 	}
 }

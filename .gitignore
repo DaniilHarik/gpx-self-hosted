@@ -35,3 +35,4 @@ cache
 node_modules
 
 coverage
+coverage.out
