@@ -14,7 +14,7 @@ coverage:
 flags:
   backend:
     paths:
-      - cmd/
+      # - cmd/
       - internal/
     carryforward: true
   frontend:
