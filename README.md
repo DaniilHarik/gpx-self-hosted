@@ -33,11 +33,23 @@ This is a personal project with specialized requirements.
     ```
 3. Open `http://localhost:8080`.
 
+## Development
+
+### Build
+- Backend binary: `go build -o gpx-self-host ./cmd/gpx-self-host`
+- Run the binary: `./gpx-self-host`
+- If you modify frontend assets, no build step is required; files in `static/` are served directly.
+
+### Tests
+- Go: `go test ./...`
+- Frontend (Jest): `npm test`
+
 ## Architecture
 
-The project follows a **Client-Server** architecture designed for simplicity and ease of hosting.
+The project follows a **Client-Server** architecture designed for simplicity and ease of development.
 
 ### 1. Backend (Go)
+
 The backend is written in **Go** (Golang) and uses the standard library (`net/http`) to keep dependencies minimal.
 *   **Static File Server**: Serves the HTML, CSS, and JavaScript files from the `static/` directory.
 *   **Data Server**: Exposes the `data/` directory to allow the frontend to fetch raw `.gpx` files.
@@ -50,6 +62,7 @@ The backend is written in **Go** (Golang) and uses the standard library (`net/ht
 *   **Service Layer**: Business logic is decoupled into `internal/service/` for better testability and maintainability.
 
 ### 2. Frontend (HTML/JS/CSS)
+
 The frontend is a Single Page Application (SPA) purposefully built with vanilla JavaScript to keep dependencies minimal.
 
 The frontend is built with the following dependencies:
@@ -78,15 +91,16 @@ gpx-self-host/
 ```
 
 ## Features
+
 *   **Automatic Indexing**: Just drop files in `data/Activities/` or `data/Plans/` and refresh.
 *   **Detailed Stats**: Distance, Duration, Speed, Elevation Gain/Loss.
 *   **Multiple Layers**: Switch between OpenTopoMap, OpenStreetMap, and Maa-amet (Estonia).
 *   **Search & Filter**: Real-time filtering by name; activity chips; year-based grouping.
 *   **Multi-Track Mode**: View multiple tracks simultaneously with distinct colors.
 *   **Drawing & Export**: Draw new routes on the map and download them as GPX.
-*   **Responsive**: Optimized for both desktop and mobile.
 
 ## Supported activities
+
 Activities are derived from the folder name directly under `data/Activities/`. 
 
 Any folder name works, but the ones below get custom icons in the UI (case-insensitive).
@@ -112,6 +126,7 @@ Any folder name works, but the ones below get custom icons in the UI (case-insen
 ## Configuration
 
 ### Tile providers
+
 Providers are configured server-side in `internal/config/config.go`. Current keys:
 - `openstreetmap`
 - `opentopomap`
@@ -130,46 +145,8 @@ Providers are configured server-side in `internal/config/config.go`. Current key
 ```
 
 #### Offline mode
+
 Run with `-offline` to block all upstream tile downloads and serve map tiles from the local cache only.
 - Warm the cache while online (browse the areas/zooms you care about, or copy a prepared `cache/tiles` tree into place).
 - Start the server with `./run.sh -offline`.
 - If a requested tile is missing from the cache, the server returns `404` instead of reaching out to the provider.
-
-## Development
-
-### Tests
-- Go: `go test ./...`
-- Frontend (Jest): `npm test`
-
-
-## Tile ranges
-
-### Maa-amet tile ranges (Estonia bbox)
-
-The ranges below use an Estonia bbox (lon 21.0–28.3, lat 57.45–59.85) and Maa-amet’s TMS scheme (Y flipped vs XYZ). Per-zoom x/y ranges and tile counts:
-
-```
-z  x_min–x_max    y_tms_min–y_tms_max   tiles
-0  0–0            0–0                   1
-1  1–1            1–1                   1
-2  2–2            2–2                   1
-3  4–4            5–5                   1
-4  8–9            11–11                 2
-5  17–18          22–22                 2
-6  35–37          44–45                 6
-7  71–74          89–90                 8
-8  142–148        178–181               28
-9  285–296        356–362               84
-10 571–592        712–725               308
-11 1143–1184      1425–1451             1,134
-12 2286–2369      2850–2903             4,536
-13 4573–4739      5701–5806             17,702
-14 9147–9479      11402–11612           70,263
-15 18295–18959    22804–23224           279,965
-16 36590–37919    45609–46449           1,118,530
-17 73181–75839    91219–92899           4,469,779
-18 146363–151679  182438–185799         17,875,754
-19 292727–303358  364877–371599         71,478,936
-```
-
-Total tiles (z0–z19): **95,317,041**.
