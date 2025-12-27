@@ -40,6 +40,11 @@ This is a personal project with specialized requirements.
 - Run the binary: `./gpx-self-host`
 - If you modify frontend assets, no build step is required; files in `static/` are served directly.
 
+### OS-specific notes
+- macOS/Linux: use the commands above as-is.
+- Windows (PowerShell): `go build -o gpx-self-host.exe ./cmd/gpx-self-host` then `.\gpx-self-host.exe`.
+- Windows: `./run.sh` is not supported; use `go run ./cmd/gpx-self-host` or the built `.exe`.
+
 ### Tests
 - Go: `go test ./...`
 - Frontend (Jest): `npm test`
