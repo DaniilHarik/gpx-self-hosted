@@ -1,7 +1,7 @@
 # Agent Guidelines (gpx-self-host)
 
 ## Non-negotiables
-- When a feature is changed or added, always update `PRODUCT_SPEC.md` (and `SPEC.md` if it exists).
+- When a feature is changed or added, always update `SPEC.md`.
 - Always review and update tests when features change.
 
 ## Project snapshot
@@ -34,7 +34,7 @@
 - **Theming**: Theme initialization is handled by an inline script in `static/index.html` to prevent flash of unstyled content. Toggle logic and persistence live in `static/js/map.js`. Use CSS variables in `static/css/style.css`.
 - **Documentation**:
     - Update `README.md` for user-facing changes (flags, features).
-    - Update `PRODUCT_SPEC.md` for UI and behavioral changes.
+    - Update `SPEC.md` for UI and behavioral changes.
     - Update `SECURITY.md` when addressing security or reliability risks.
     - Follow the vulnerability reporting guidance in `SECURITY.md` for security issues.
 

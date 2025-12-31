@@ -5,7 +5,7 @@
 This project heavily utilizes AI coding assistants for development. 
 
 *   **Iterative AI workflow**: The focus is on simple client/server architecture and clear constraints, allowing AI to handle the bulk of implementation and testing.
-*   **Documentation**: A detailed `PRODUCT_SPEC.md` and `SECURITY.md` are provided to provide context for both human and AI collaborators.
+*   **Documentation**: A detailed `SPEC.md` and `SECURITY.md` are provided to provide context for both human and AI collaborators.
 *   **Tests**: Comprehensive Go and Jest tests are used to ensure stability across AI-driven iterations.
 
 ## How to Contribute
@@ -16,7 +16,7 @@ Please use GitHub Issues to report bugs or suggest new features.
 ### Development
 1.  **Fork the repository** and create your branch from `main`.
 2.  **Run tests**: Ensure `go test ./...` and `npm test` pass.
-3.  **Update documentation**: If you're adding a feature, please update `PRODUCT_SPEC.md`.
+3.  **Update documentation**: If you're adding a feature, please update `SPEC.md`.
 
 ### Pull Requests
 - Keep PRs focused and modular.
