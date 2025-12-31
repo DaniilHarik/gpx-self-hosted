@@ -72,6 +72,7 @@ Updated: 2025-12-21
 - Footprint: Go stdlib backend; frontend relies on CDN Leaflet/Leaflet Draw/Font Awesome; runs without database.
 - Compatibility: desktop and mobile map interaction; works on modern browsers.
 - Testing: Go unit tests for config, GPX listing, tile proxy, caching; Jest + jsdom tests for UI logic, filters, stats formatting, GPX export.
+- Frontend coverage: `npm test` collects coverage from `static/js/` and outputs text, HTML, and lcov reports to `coverage/`.
 
 ## Constraints and Open Questions
 - Upstream tile provider rate limits and legal terms must be observed; no throttling built in.

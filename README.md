@@ -47,7 +47,7 @@ This is a personal project with specialized requirements.
 
 ### Tests
 - Go: `go test ./...`
-- Frontend (Jest): `npm test`
+- Frontend (Jest, with coverage): `npm test`
 
 ## Architecture
 

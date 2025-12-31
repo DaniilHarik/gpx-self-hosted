@@ -5,7 +5,7 @@
   "description": "A lightweight, self-hosted web application for browsing and visualizing GPX tracks locally. It scans a local directory for `.gpx` files and displays them on an interactive map with detailed statistics.",
   "main": "index.js",
   "scripts": {
-    "test": "NODE_OPTIONS='--experimental-vm-modules' jest"
+    "test": "NODE_OPTIONS='--experimental-vm-modules' jest --coverage"
   },
   "keywords": [],
   "author": "",
