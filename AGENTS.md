@@ -1,5 +1,9 @@
 # Agent Guidelines (gpx-self-host)
 
+## Non-negotiables
+- When a feature is changed or added, always update `PRODUCT_SPEC.md` (and `SPEC.md` if it exists).
+- Always review and update tests when features change.
+
 ## Project snapshot
 - **Backend (Go)**:
     - `cmd/gpx-self-host/`: CLI entrypoint.
@@ -10,8 +14,9 @@
     - `internal/service/`: Core business logic (Split into `gpx` and `tiles` services).
 - **Frontend (SPA)**:
     - `static/`: HTML/JS/CSS (Vanilla stack).
-    - `static/js/app.js`: Main logic, Leaflet integration.
-    - `static/js/theme.js`: Theme switching and persistence.
+    - `static/js/app.js`: App orchestration and event wiring.
+    - `static/js/map.js`: Leaflet integration, map state, theme toggle wiring.
+    - `static/js/state.js`: Shared DOM lookups and constants.
 - **Data & Cache**:
     - `data/Activities/`: User GPX files (nested folders allowed).
     - `data/Plans/`: Plan GPX files (nested folders allowed).
@@ -26,7 +31,7 @@
 - **Minimal Dependencies**: Prefer Go standard library; avoid heavyweight JS frameworks.
 - **Logging**: Use `log/slog` for structured logging. Do not use `fmt.Printf` or `log.Printf` for server logs.
 - **Validation**: Strict input validation for all API endpoints (see `SECURITY.md` for known risks).
-- **Theming**: Theme initialization is handled by an inline script in `index.html` to prevent flash of unstyled content. Toggle logic and persistence are in `app.js`. Use CSS variables in `style.css`.
+- **Theming**: Theme initialization is handled by an inline script in `static/index.html` to prevent flash of unstyled content. Toggle logic and persistence live in `static/js/map.js`. Use CSS variables in `static/css/style.css`.
 - **Documentation**:
     - Update `README.md` for user-facing changes (flags, features).
     - Update `PRODUCT_SPEC.md` for UI and behavioral changes.
