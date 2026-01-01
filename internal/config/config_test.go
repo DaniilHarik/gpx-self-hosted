@@ -77,3 +77,15 @@ func TestParse_Error(t *testing.T) {
 		t.Error("expected error for unknown flag")
 	}
 }
+
+func TestLoad(t *testing.T) {
+	// Load uses flag.CommandLine and os.Args.
+	// We can't easily change os.Args safely in tests without affecting others,
+	// but we can at least call it to ensure it doesn't panic with default args.
+	// Since we are running in go test, os.Args will contain test flags.
+	// To avoid log.Fatalf, we just verify it returns a non-nil config.
+	cfg := Load()
+	if cfg == nil {
+		t.Error("expected non-nil config from Load")
+	}
+}

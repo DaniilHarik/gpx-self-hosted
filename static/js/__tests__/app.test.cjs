@@ -1603,5 +1603,54 @@ describe('App edge cases', () => {
             expect(app.getActivityIcon(null)).toBe('fa-route');
             expect(app.getActivityIcon('Plans')).toBe('fa-calendar');
         });
+
+        test('clampInt handles invalid inputs', async () => {
+            const utils = await import('../utils.js');
+            expect(utils.clampInt('not-a-number', 0, 10)).toBe(0);
+            expect(utils.clampInt(undefined, 5, 20)).toBe(5);
+            expect(utils.clampInt(50, 0, 10)).toBe(10);
+        });
+
+        test('boundsToDto covers both Leaflet bound formats', async () => {
+            const utils = await import('../utils.js');
+            // Format 1: getNorth, getSouth, etc.
+            const bounds1 = {
+                getNorth: () => 10,
+                getSouth: () => -10,
+                getEast: () => 20,
+                getWest: () => -20
+            };
+            expect(utils.boundsToDto(bounds1)).toEqual({ north: 10, south: -10, east: 20, west: -20 });
+
+            // Format 2: getNorthWest, getSouthEast
+            const bounds2 = {
+                getNorthWest: () => ({ lat: 10, lng: -20 }),
+                getSouthEast: () => ({ lat: -10, lng: 20 })
+            };
+            expect(utils.boundsToDto(bounds2)).toEqual({ north: 10, west: -20, south: -10, east: 20 });
+
+            expect(utils.boundsToDto(null)).toBeNull();
+            expect(utils.boundsToDto({})).toBeNull();
+        });
+
+        test('setupLeafletIcons handles missing L gracefully', async () => {
+            const originalL = global.L;
+            delete global.L;
+            const map = await import('../map.js');
+            expect(() => map.setupLeafletIcons()).not.toThrow();
+            global.L = originalL;
+        });
+
+        test('persistLayer and getSavedLayer handle storage errors', async () => {
+            const map = await import('../map.js');
+            const setSpy = jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('fail'); });
+            const getSpy = jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('fail'); });
+
+            expect(() => map.persistLayer('test')).not.toThrow();
+            expect(map.getSavedLayer()).toBeNull();
+
+            setSpy.mockRestore();
+            getSpy.mockRestore();
+        });
     });
 });

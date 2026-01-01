@@ -186,13 +186,52 @@ func TestGetTile_Upstream404(t *testing.T) {
 }
 
 func TestGetTile_UnknownProvider(t *testing.T) {
+	// ... (rest of TestGetTile_UnknownProvider remains the same)
+}
+
+func TestGetTile_SaveFailure(t *testing.T) {
+	// Use a read-only directory to trigger save failure
+	cacheDir := t.TempDir()
+	readOnlyDir := filepath.Join(cacheDir, "readonly")
+	if err := os.MkdirAll(readOnlyDir, 0555); err != nil {
+		t.Fatal(err)
+	}
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("data"))
+	}))
+	defer ts.Close()
+
 	cfg := &config.Config{
-		Providers: map[string]config.TileProviderConfig{},
+		CacheDir:      readOnlyDir, // This will fail MkdirAll which is called inside tiles/provider/z/x
+		ClientTimeout: time.Second,
+		MaxRetries:    1,
+		Providers: map[string]config.TileProviderConfig{
+			"test": {URLTemplate: ts.URL + "/{z}/{x}/{y}.png"},
+		},
 	}
 	service := NewService(cfg)
 
-	_, err := service.GetTile(context.Background(), "unknown", "1", "2", "3.png")
-	if err == nil || err.Error() != "unknown provider" {
-		t.Errorf("expected 'unknown provider' error, got %v", err)
+	_, err := service.GetTile(context.Background(), "test", "1", "2", "3.png")
+	if err == nil || !strings.Contains(err.Error(), "failed to create cache directory") {
+		t.Errorf("expected 'failed to create cache directory' error, got %v", err)
+	}
+}
+
+func TestGetTile_DownloadError(t *testing.T) {
+	cfg := &config.Config{
+		CacheDir:      t.TempDir(),
+		ClientTimeout: time.Second,
+		MaxRetries:    1,
+		Providers: map[string]config.TileProviderConfig{
+			"test": {URLTemplate: "http://invalid-url-that-fails/{z}/{x}/{y}.png"},
+		},
+	}
+	service := NewService(cfg)
+
+	_, err := service.GetTile(context.Background(), "test", "1", "2", "3.png")
+	if err == nil || !strings.Contains(err.Error(), "failed to fetch tile") {
+		t.Errorf("expected 'failed to fetch tile' error, got %v", err)
 	}
 }

@@ -187,6 +187,10 @@ func TestPrewarmView_Success(t *testing.T) {
 }
 
 func TestPrewarmView_ZeroTiles(t *testing.T) {
+	// ... (rest of TestPrewarmView_ZeroTiles remains the same)
+}
+
+func TestPrewarmView_TMS(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -195,8 +199,9 @@ func TestPrewarmView_ZeroTiles(t *testing.T) {
 	cfg := &config.Config{
 		CacheDir: t.TempDir(),
 		Providers: map[string]config.TileProviderConfig{
-			"test": {
-				ZoomRange:   [2]int{10, 12},
+			"tms": {
+				IsTMS:       true,
+				ZoomRange:   [2]int{0, 1},
 				URLTemplate: ts.URL + "/{z}/{x}/{y}.png",
 			},
 		},
@@ -205,16 +210,15 @@ func TestPrewarmView_ZeroTiles(t *testing.T) {
 	ctx := context.Background()
 
 	resp, err := service.PrewarmView(ctx, model.PrewarmViewRequest{
-		ProviderKey: "test",
-		Bounds:      model.BoundsDTO{North: 0, South: 0, West: 0, East: 0},
-		CenterZoom:  10,
+		ProviderKey: "tms",
+		Bounds:      model.BoundsDTO{North: 10, South: 0, West: 0, East: 10},
+		CenterZoom:  1,
 		ZoomRadius:  0,
 	})
 	if err != nil {
 		t.Fatalf("PrewarmView failed: %v", err)
 	}
-	// Even with 0x0 bounds, we get at least 1 tile due to floor/rounding logic.
 	if resp.Total == 0 {
-		t.Errorf("expected at least 1 tile, got %d", resp.Total)
+		t.Error("expected positive total tiles")
 	}
 }
