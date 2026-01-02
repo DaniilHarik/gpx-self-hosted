@@ -1,63 +1,57 @@
-# Agent Guidelines (gpx-self-host)
+# Agent Guide
+
+## Project
+Self-hosted GPX viewer with a Go backend, vanilla JS frontend, and on-disk
+tile caching.
 
 ## Non-negotiables
 - When a feature is changed or added, always update `SPEC.md`.
 - Always review and update tests when features change.
 
-## Project snapshot
-- **Backend (Go)**:
-    - `cmd/gpx-self-host/`: CLI entrypoint.
-    - `internal/config/`: Configuration (flags, providers).
-    - `internal/handler/`: HTTP handlers.
-    - `internal/model/`: Shared DTOs and types.
-    - `internal/server/`: Router setup and server initialization.
-    - `internal/service/`: Core business logic (Split into `gpx` and `tiles` services).
-- **Frontend (SPA)**:
-    - `static/`: HTML/JS/CSS (Vanilla stack).
-    - `static/js/app.js`: App orchestration and event wiring.
-    - `static/js/map.js`: Leaflet integration, map state, theme toggle wiring.
-    - `static/js/state.js`: Shared DOM lookups and constants.
-- **Data & Cache**:
-    - `data/Activities/`: User GPX files (nested folders allowed).
-    - `data/Plans/`: Plan GPX files (nested folders allowed).
-    - `cache/tiles/`: Proxied map tiles stored as `<provider>/<z>/<x>/<y>.<ext>`.
+## Key files
+- `SPEC.md` – Product requirements and UX scope.
+- `README.md` – Architecture, setup, and flags.
+- `cmd/gpx-self-host/` – CLI entrypoint.
+- `internal/` – Config, handlers, models, server, and services.
+- `static/` – HTML/JS/CSS frontend.
+- `data/` – GPX files (activities and plans).
+- `cache/tiles/` – Proxied map tiles cache.
 
-## Local commands
-- Run server: `./run.sh` or `go run ./cmd/gpx-self-host`
-- Go tests: `go test ./...`
-- Frontend tests: `npm test` (Uses Jest and jsdom)
+## Workflow
+- Read `SPEC.md` first for requirements before changing behavior.
+- Check `README.md` for architecture, setup, and command guidance.
+
+## Commands
+- `./run.sh` or `go run ./cmd/gpx-self-host` runs the server.
+- `go test ./...` runs Go tests.
+- `npm test` runs frontend tests (Jest + jsdom).
 
 ## Conventions
-- **Minimal Dependencies**: Prefer Go standard library; avoid heavyweight JS frameworks.
-- **Logging**: Use `log/slog` for structured logging. Do not use `fmt.Printf` or `log.Printf` for server logs.
-- **Validation**: Strict input validation for all API endpoints (see `SECURITY.md` for known risks).
-- **Theming**: Theme initialization is handled by an inline script in `static/index.html` to prevent flash of unstyled content. Toggle logic and persistence live in `static/js/map.js`. Use CSS variables in `static/css/style.css`.
-- **Documentation**:
-    - Update `README.md` for user-facing changes (flags, features).
-    - Update `SPEC.md` for UI and behavioral changes.
-    - Update `SECURITY.md` when addressing security or reliability risks.
-    - Follow the vulnerability reporting guidance in `SECURITY.md` for security issues.
+- Prefer Go standard library; avoid heavyweight JS frameworks.
+- Use `log/slog` for structured logging; avoid `fmt.Printf` and `log.Printf`
+  for server logs.
+- Validate all external inputs and handle errors explicitly.
+- Theme initialization lives inline in `static/index.html` to prevent FOUC;
+  toggle logic and persistence live in `static/js/map.js`.
+- Update `README.md` for user-facing changes (flags, features).
+- Update `SPEC.md` for UI or behavioral changes.
+- Update `SECURITY.md` when addressing security or reliability risks.
 
 ## Repo hygiene
-- **Data Protection**: Never commit contents of `data/`, `cache/`, `node_modules/`, or `.gocache/` (except the two example GPX files intentionally committed under `data/`).
-- **Path Safety**: Always use `filepath.Clean` and check for directory traversal when handling user-provided paths or filenames.
-- **Concurrency**: Be extremely careful with concurrent file writes in the tile proxy (see `internal/service/tiles/service.go`).
+- Do not commit `data/`, `cache/`, `node_modules/`, or `.gocache/` contents
+  (except the two example GPX files under `data/`).
+- Guard against path traversal and unsafe file access when handling user input;
+  use `filepath.Clean` and validate numeric path components.
+- Be careful with concurrent file writes in the tile proxy.
 
-## Feature Specifics
-- **Multi-Track Mode**: Managed via `isMultiTrackMode` in `app.js`. Involves additive track selection with distinct colors.
-- **Prewarm View**: Backend task (triggered via `/api/prewarm-view`) to download tiles for a given bbox and zoom range. Spawns workers to populate the on-disk cache.
-- **Plans View**: Tracks under `data/Plans/` are handled separately from `data/Activities/`.
+## Feature specifics
+- Multi-track mode: `isMultiTrackMode` in `static/js/app.js`.
+- Prewarm view: `/api/prewarm-view` populates tile cache for bbox + zoom range.
+- Plans view: `data/Plans/` is handled separately from `data/Activities/`.
 
-## Technical Details
-
-### Tile Service (`internal/service/tiles/`)
-- **Caching Strategy**: Flat file structure under `cache/tiles/`. Extension is preserved from the request.
-- **Extension Mismatch**: Providers serving JPEG (e.g., `maaamet-foto`) may be cached with a `.png` extension if the request uses it. This can cause incorrect `Content-Type` headers when serving from disk.
-- **Risk Area**: Concurrent downloads are NOT currently synchronized. Multiple requests for the same tile will trigger multiple upstream fetches and potentially race on the same file write.
-- **Path Traversal**: Coordinate parameters (`z`, `x`, `yPng`) are currently used directly in file paths. Always validate these are numeric/safe before passing to the service.
-
-### Prewarm Logic (`internal/service/tiles/prewarm.go`)
-- **Coordinates**: Uses standard WGS84 to OSM/Mercator tile conversion formulas.
-- **Concurrency**: Defaults to 8 workers per request. Not globally limited across concurrent requests.
-- **Limits**: Hard limit of 50,000 tiles per request (`maxTilesPerPrewarmRequest`) to prevent catastrophic resource exhaustion.
-- **Cancellation**: Respects context cancellation; will stop spawning workers and close the task channel if the client disconnects.
+## Technical details
+- Tile cache keeps original extension; mismatches can cause incorrect
+  `Content-Type` when serving cached JPEGs as `.png`.
+- Tile downloads are not synchronized; concurrent requests can race on writes.
+- Prewarm defaults to 8 workers, 50,000 tile hard limit, and respects context
+  cancellation.
