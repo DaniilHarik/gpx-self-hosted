@@ -46,6 +46,9 @@ func (s *Service) GetStats() model.StatusResponse {
 
 // GetTile returns the path to the cached tile, downloading it if necessary.
 func (s *Service) GetTile(ctx context.Context, providerName, z, x, yPng string) (string, error) {
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
 	provider, ok := s.cfg.Providers[providerName]
 	if !ok {
 		atomic.AddUint64(&s.cacheErrors, 1)
@@ -80,6 +83,9 @@ func (s *Service) GetTile(ctx context.Context, providerName, z, x, yPng string) 
 	var resp *http.Response
 	var err error
 	for i := 0; i < s.cfg.MaxRetries; i++ {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return "", ctxErr
+		}
 		req, reqErr := http.NewRequestWithContext(ctx, "GET", url, nil)
 		if reqErr != nil {
 			err = reqErr
@@ -98,14 +104,25 @@ func (s *Service) GetTile(ctx context.Context, providerName, z, x, yPng string) 
 			resp.Body.Close()
 		}
 
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return "", ctxErr
+		}
+
 		status := "nil"
 		if resp != nil {
 			status = resp.Status
 		}
 		slog.Warn("Download attempt failed", "attempt", i+1, "error", err, "status", status)
-		time.Sleep(1 * time.Second)
+		if i < s.cfg.MaxRetries-1 {
+			if sleepErr := sleepWithContext(ctx, time.Second); sleepErr != nil {
+				return "", sleepErr
+			}
+		}
 	}
 
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		return "", ctxErr
+	}
 	if err != nil {
 		slog.Error("Failed to fetch tile after max attempts", "max_retries", s.cfg.MaxRetries, "error", err)
 		atomic.AddUint64(&s.cacheErrors, 1)
@@ -124,6 +141,9 @@ func (s *Service) GetTile(ctx context.Context, providerName, z, x, yPng string) 
 		return "", fmt.Errorf("upstream status %d", resp.StatusCode)
 	}
 
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		return "", ctxErr
+	}
 	if err := os.MkdirAll(cacheDir, 0755); err != nil {
 		atomic.AddUint64(&s.cacheErrors, 1)
 		return "", fmt.Errorf("failed to create cache directory: %w", err)
@@ -137,8 +157,27 @@ func (s *Service) GetTile(ctx context.Context, providerName, z, x, yPng string) 
 	defer out.Close()
 
 	if _, err := io.Copy(out, resp.Body); err != nil {
-		slog.Error("Error writing to cache file", "error", err)
+		atomic.AddUint64(&s.cacheErrors, 1)
+		_ = os.Remove(cachePath)
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return "", ctxErr
+		}
+		return "", fmt.Errorf("failed to write tile: %w", err)
 	}
 
 	return cachePath, nil
+}
+
+func sleepWithContext(ctx context.Context, d time.Duration) error {
+	if d <= 0 {
+		return nil
+	}
+	timer := time.NewTimer(d)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
 }

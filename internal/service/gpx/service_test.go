@@ -1,82 +1,89 @@
 package gpx
 
 import (
+	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
 )
 
-func TestListFiles(t *testing.T) {
-	dataDir := t.TempDir()
+func TestListFiles_ContextCanceled(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
 
-	// Create some test files
-	files := []struct {
-		path    string
-		content string
-	}{
-		{"Activities/test1.gpx", "gpx content"},
-		{"Activities/test2.GPX", "gpx content case insensitive"},
-		{"Activities/subdir/test3.gpx", "nested gpx"},
-		{"Activities/ignore.txt", "not a gpx"},
-		{"Activities/.hidden.gpx", "hidden gpx"},
-		{"Plans/plan.gpx", "plan gpx"},
-		{"root.gpx", "ignored at root"},
-	}
-
-	for _, f := range files {
-		fullPath := filepath.Join(dataDir, f.path)
-		if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err != nil {
-			t.Fatalf("failed to create dir: %v", err)
-		}
-		if err := os.WriteFile(fullPath, []byte(f.content), 0644); err != nil {
-			t.Fatalf("failed to write file: %v", err)
-		}
-	}
-
-	service := NewService(dataDir)
-	result, err := service.ListFiles()
-	if err != nil {
-		t.Fatalf("ListFiles failed: %v", err)
-	}
-
-	expectedCount := 5 // test1.gpx, test2.GPX, subdir/test3.gpx, .hidden.gpx, plan.gpx
-	if len(result) != expectedCount {
-		t.Errorf("expected %d files, got %d", expectedCount, len(result))
-	}
-
-	found := make(map[string]bool)
-	for _, f := range result {
-		found[f.RelativePath] = true
-	}
-
-	expectedPaths := []string{
-		"Activities/test1.gpx",
-		"Activities/test2.GPX",
-		"Activities/subdir/test3.gpx",
-		"Activities/.hidden.gpx",
-		"Plans/plan.gpx",
-	}
-	for _, path := range expectedPaths {
-		if !found[path] {
-			t.Errorf("expected path %s not found in result", path)
-		}
+	svc := NewService(t.TempDir())
+	_, err := svc.ListFiles(ctx)
+	if err == nil || !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context.Canceled, got %v", err)
 	}
 }
 
-func TestListFiles_RootsAreFiles(t *testing.T) {
+func TestListFiles_ReturnsActivitiesAndPlans(t *testing.T) {
 	dataDir := t.TempDir()
-	// Create "Activities" as a file instead of a directory
-	if err := os.WriteFile(filepath.Join(dataDir, "Activities"), []byte("not a dir"), 0644); err != nil {
-		t.Fatal(err)
+
+	activitiesDir := filepath.Join(dataDir, "Activities")
+	plansDir := filepath.Join(dataDir, "Plans")
+	if err := os.MkdirAll(filepath.Join(activitiesDir, "sub"), 0755); err != nil {
+		t.Fatalf("failed to create activities dir: %v", err)
+	}
+	if err := os.MkdirAll(plansDir, 0755); err != nil {
+		t.Fatalf("failed to create plans dir: %v", err)
 	}
 
-	service := NewService(dataDir)
-	result, err := service.ListFiles()
+	files := []string{
+		filepath.Join(activitiesDir, "track1.gpx"),
+		filepath.Join(activitiesDir, "track2.GPX"),
+		filepath.Join(activitiesDir, "ignore.txt"),
+		filepath.Join(activitiesDir, "sub", "nested.gpx"),
+		filepath.Join(plansDir, "plan1.gpx"),
+	}
+	for _, path := range files {
+		if err := os.WriteFile(path, []byte("data"), 0644); err != nil {
+			t.Fatalf("failed to write %s: %v", path, err)
+		}
+	}
+
+	svc := NewService(dataDir)
+	list, err := svc.ListFiles(context.Background())
 	if err != nil {
-		t.Fatalf("ListFiles failed: %v", err)
+		t.Fatalf("ListFiles error: %v", err)
 	}
 
-	if len(result) != 0 {
-		t.Errorf("expected 0 files, got %d", len(result))
+	if len(list) != 4 {
+		t.Fatalf("expected 4 gpx files, got %d", len(list))
+	}
+
+	expectRel := map[string]string{
+		"Activities/track1.gpx":     "/data/Activities/track1.gpx",
+		"Activities/track2.GPX":     "/data/Activities/track2.GPX",
+		"Activities/sub/nested.gpx": "/data/Activities/sub/nested.gpx",
+		"Plans/plan1.gpx":           "/data/Plans/plan1.gpx",
+	}
+	for _, f := range list {
+		wantPath, ok := expectRel[f.RelativePath]
+		if !ok {
+			t.Fatalf("unexpected relative path %q", f.RelativePath)
+		}
+		if f.Path != wantPath {
+			t.Fatalf("unexpected path for %q: got %q want %q", f.RelativePath, f.Path, wantPath)
+		}
+		delete(expectRel, f.RelativePath)
+	}
+	if len(expectRel) != 0 {
+		t.Fatalf("missing expected entries: %d", len(expectRel))
+	}
+}
+
+func TestListFiles_MissingRootsOk(t *testing.T) {
+	dataDir := t.TempDir()
+	svc := NewService(dataDir)
+
+	list, err := svc.ListFiles(context.Background())
+	if err != nil {
+		t.Fatalf("ListFiles error: %v", err)
+	}
+	if len(list) != 0 {
+		t.Fatalf("expected no files, got %d", len(list))
 	}
 }

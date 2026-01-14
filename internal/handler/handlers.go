@@ -11,7 +11,7 @@ import (
 )
 
 type GPXService interface {
-	ListFiles() ([]model.GPXFile, error)
+	ListFiles(ctx context.Context) ([]model.GPXFile, error)
 }
 
 type TilesService interface {
@@ -35,7 +35,7 @@ func New(cfg *config.Config, gpxService GPXService, tileService TilesService) *H
 }
 
 func (h *Handlers) ListGPXFiles(w http.ResponseWriter, r *http.Request) {
-	files, err := h.gpxService.ListFiles()
+	files, err := h.gpxService.ListFiles(r.Context())
 	if err != nil {
 		http.Error(w, "Error scanning data folder: "+err.Error(), http.StatusInternalServerError)
 		return

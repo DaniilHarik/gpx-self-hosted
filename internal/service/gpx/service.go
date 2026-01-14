@@ -1,6 +1,7 @@
 package gpx
 
 import (
+	"context"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -17,12 +18,18 @@ func NewService(dataDir string) *Service {
 	return &Service{DataDir: dataDir}
 }
 
-func (s *Service) ListFiles() ([]model.GPXFile, error) {
+func (s *Service) ListFiles(ctx context.Context) ([]model.GPXFile, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	var files []model.GPXFile
 
 	scanRoots := []string{"Activities", "Plans"}
 
 	for _, root := range scanRoots {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		rootPath := filepath.Join(s.DataDir, root)
 		info, err := os.Stat(rootPath)
 		if err != nil {
@@ -36,6 +43,9 @@ func (s *Service) ListFiles() ([]model.GPXFile, error) {
 		}
 
 		err = filepath.WalkDir(rootPath, func(path string, d fs.DirEntry, err error) error {
+			if ctxErr := ctx.Err(); ctxErr != nil {
+				return ctxErr
+			}
 			if err != nil {
 				return err
 			}

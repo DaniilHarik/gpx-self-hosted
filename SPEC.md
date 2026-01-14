@@ -38,10 +38,11 @@ Updated: 2025-12-21
   - Tile config endpoint `GET /api/tile-config` mirrors providers and declares the initial provider key (`Cache-Control: no-store`).
   - Status endpoint `GET /api/status` returns cache hit/miss/error counters since process start for lightweight health checks (`Cache-Control: no-store`).
 - Prewarm endpoint `POST /api/prewarm-view` downloads all tiles covering a `{bounds, providerKey, centerZoom, zoomRadius}` request into the on-disk cache (`Cache-Control: no-store`) and returns `{providerKey, zoomMin, zoomMax, total, ok, failed}`.
-- Map tiles & caching
+  - Map tiles & caching
   - Frontend requests tiles through `/tiles/{provider}/{z}/{x}/{y}.(png|jpg)`; server swaps `{z,x,y}` into the provider template and proxies to upstream.
   - Tile cache stored under `cache/tiles/<provider>/<z>/<x>/<y>.<ext>` where `<ext>` matches the request (today the SPA always uses `.png`).
   - **Prewarm**: client “Download Current View” sends one `POST /api/prewarm-view`; server enumerates tiles for the requested view/zooms, honors provider TMS, downloads with limited concurrency, and stops early if the client aborts.
+  - Tile downloads and prewarm workers honor request context cancellation (including during retry backoff) to stop quickly on client aborts.
   - Known issue: providers that serve JPEG upstream (e.g. Maa-amet Foto) can be cached/served under a `.png` request path, which can lead to incorrect `Content-Type` headers when serving from disk.
   - Offline mode (`-offline`): cache-only serving; cache misses return 404 without calling upstream or writing to disk. Assumes cache warmed or pre-seeded.
   - Upstream 404 yields 404 without caching; repeated requests to cached tiles must not call upstream.

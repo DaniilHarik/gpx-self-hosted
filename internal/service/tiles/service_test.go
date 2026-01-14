@@ -2,6 +2,7 @@ package tiles
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -49,6 +50,24 @@ func TestGetTile_CacheHit(t *testing.T) {
 	stats := service.GetStats()
 	if stats.CacheHits != 1 {
 		t.Errorf("expected 1 cache hit, got %d", stats.CacheHits)
+	}
+}
+
+func TestGetTile_ContextCanceled(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	cfg := &config.Config{
+		CacheDir: t.TempDir(),
+		Providers: map[string]config.TileProviderConfig{
+			"test": {Name: "Test"},
+		},
+	}
+	service := NewService(cfg)
+
+	_, err := service.GetTile(ctx, "test", "1", "2", "3.png")
+	if err == nil || !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context.Canceled, got %v", err)
 	}
 }
 

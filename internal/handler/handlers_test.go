@@ -15,11 +15,11 @@ import (
 )
 
 type mockGPXService struct {
-	listFilesFunc func() ([]model.GPXFile, error)
+	listFilesFunc func(ctx context.Context) ([]model.GPXFile, error)
 }
 
-func (m *mockGPXService) ListFiles() ([]model.GPXFile, error) {
-	return m.listFilesFunc()
+func (m *mockGPXService) ListFiles(ctx context.Context) ([]model.GPXFile, error) {
+	return m.listFilesFunc(ctx)
 }
 
 type mockTilesService struct {
@@ -167,7 +167,7 @@ func TestTileProxyHandler_SpecificErrors(t *testing.T) {
 
 func TestListGPXHandler(t *testing.T) {
 	mockGPX := &mockGPXService{
-		listFilesFunc: func() ([]model.GPXFile, error) {
+		listFilesFunc: func(ctx context.Context) ([]model.GPXFile, error) {
 			return []model.GPXFile{{Name: "test.gpx"}}, nil
 		},
 	}
@@ -194,7 +194,7 @@ func TestListGPXHandler(t *testing.T) {
 
 func TestListGPXHandler_Error(t *testing.T) {
 	mockGPX := &mockGPXService{
-		listFilesFunc: func() ([]model.GPXFile, error) {
+		listFilesFunc: func(ctx context.Context) ([]model.GPXFile, error) {
 			return nil, &customError{"scan error"}
 		},
 	}
@@ -275,7 +275,7 @@ func TestHandlers_JSONError(t *testing.T) {
 	// if the handler was generic. Since they aren't, we can try to force a Write error.
 
 	mockGPX := &mockGPXService{
-		listFilesFunc: func() ([]model.GPXFile, error) {
+		listFilesFunc: func(ctx context.Context) ([]model.GPXFile, error) {
 			return []model.GPXFile{{Name: "test.gpx"}}, nil
 		},
 	}

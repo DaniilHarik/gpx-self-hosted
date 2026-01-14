@@ -2,6 +2,7 @@ package tiles
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -145,6 +146,29 @@ func TestPrewarmView_Errors(t *testing.T) {
 	})
 	if err == nil || err.Error() != "too many tiles" {
 		t.Errorf("expected 'too many tiles' error, got %v", err)
+	}
+}
+
+func TestPrewarmView_ContextCanceled(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	cfg := &config.Config{
+		Providers: map[string]config.TileProviderConfig{
+			"test": {ZoomRange: [2]int{0, 1}},
+		},
+		Offline: false,
+	}
+	service := NewService(cfg)
+
+	_, err := service.PrewarmView(ctx, model.PrewarmViewRequest{
+		ProviderKey: "test",
+		Bounds:      model.BoundsDTO{North: 10, South: 0, West: 0, East: 10},
+		CenterZoom:  1,
+		ZoomRadius:  0,
+	})
+	if err == nil || !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context.Canceled, got %v", err)
 	}
 }
 

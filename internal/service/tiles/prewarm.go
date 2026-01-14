@@ -232,7 +232,8 @@ func (s *Service) PrewarmView(ctx context.Context, req model.PrewarmViewRequest)
 		for _, seg := range xSegs {
 			for x := seg.min; x <= seg.max; x++ {
 				for y := yMin; y <= yMax; y++ {
-					if ctx.Err() != nil {
+					select {
+					case <-ctx.Done():
 						close(tasks)
 						wg.Wait()
 						slog.Info(
@@ -246,8 +247,8 @@ func (s *Service) PrewarmView(ctx context.Context, req model.PrewarmViewRequest)
 							"duration_ms", time.Since(start).Milliseconds(),
 						)
 						return model.PrewarmViewResponse{}, ctx.Err()
+					case tasks <- tileCoord{z: z, x: x, y: y}:
 					}
-					tasks <- tileCoord{z: z, x: x, y: y}
 				}
 			}
 		}
