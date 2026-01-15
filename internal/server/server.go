@@ -4,11 +4,13 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"path/filepath"
 	"time"
 
 	"gpx-self-host/internal/config"
 	"gpx-self-host/internal/handler"
 	"gpx-self-host/internal/service/gpx"
+	"gpx-self-host/internal/service/gpx/cache"
 	"gpx-self-host/internal/service/tiles"
 )
 
@@ -19,7 +21,13 @@ type Server struct {
 
 func New(cfg *config.Config) *Server {
 	// Initialize Services
+	gpxCache := cache.NewCache(filepath.Join(cfg.CacheDir, "gpx_metadata.json"))
+	if err := gpxCache.Load(); err != nil {
+		slog.Error("failed to load gpx metadata cache", "error", err)
+	}
+
 	gpxService := gpx.NewService(cfg.DataDir)
+	gpxService.Cache = gpxCache
 	tileService := tiles.NewService(cfg)
 
 	// Initialize Handlers
