@@ -44,13 +44,14 @@ All tasks follow a strict lifecycle:
    - Add dated note explaining the change
    - Resume implementation
 
-8. **Commit Code Changes:**
+8. **Request Commit:**
    - Stage all code changes related to the task.
    - Propose a clear, concise commit message e.g, `feat(ui): Create basic HTML structure for calculator`.
-   - Perform the commit.
+   - **STOP** and ask the user to perform the commit.
+   - Verify the commit was made before proceeding.
 
 9. **Attach Task Summary with Git Notes:**
-   - **Step 9.1: Get Commit Hash:** Obtain the hash of the *just-completed commit* (`git log -1 --format="%H"`).
+   - **Step 9.1: Get Commit Hash:** Obtain the hash of the *just-completed commit* (user must provide or agent finds `git log -1 --format="%H"`).
    - **Step 9.2: Draft Note Content:** Create a detailed summary for the completed task. This should include the task name, a summary of changes, a list of all created/modified files, and the core "why" for the change.
    - **Step 9.3: Attach Note:** Use the `git notes` command to attach the summary to the commit.
      ```bash
@@ -62,9 +63,10 @@ All tasks follow a strict lifecycle:
     - **Step 10.1: Update Plan:** Read `plan.md`, find the line for the completed task, update its status from `[~]` to `[x]`, and append the first 7 characters of the *just-completed commit's* commit hash.
     - **Step 10.2: Write Plan:** Write the updated content back to `plan.md`.
 
-11. **Commit Plan Update:**
+11. **Request Plan Update Commit:**
     - **Action:** Stage the modified `plan.md` file.
-    - **Action:** Commit this change with a descriptive message (e.g., `conductor(plan): Mark task 'Create user model' as complete`).
+    - **Action:** Propose a descriptive message (e.g., `conductor(plan): Mark task 'Create user model' as complete`).
+    - **Action:** Ask user to commit.
 
 ### Phase Completion Verification and Checkpointing Protocol
 
@@ -115,9 +117,13 @@ All tasks follow a strict lifecycle:
     -   After presenting the detailed plan, ask the user for confirmation: "**Does this meet your expectations? Please confirm with yes or provide feedback on what needs to be changed.**"
     -   **PAUSE** and await the user's response. Do not proceed without an explicit yes or confirmation.
 
-6.  **Create Checkpoint Commit:**
-    -   Stage all changes. If no changes occurred in this step, proceed with an empty commit.
-    -   Perform the commit with a clear and concise message (e.g., `conductor(checkpoint): Checkpoint end of Phase X`).
+6. **Request Checkpoint Commit:**
+
+    - Stage all changes. If no changes occurred in this step, stage an empty commit.
+
+    - Propose a clear and concise message (e.g., `conductor(checkpoint): Checkpoint end of Phase X`).
+
+    - Ask user to commit.
 
 7.  **Attach Auditable Verification Report using Git Notes:**
     -   **Step 7.1: Draft Note Content:** Create a detailed verification report including the automated test command, the manual verification steps, and the user's confirmation.
@@ -128,9 +134,10 @@ All tasks follow a strict lifecycle:
     -   **Step 8.2: Update Plan:** Read `plan.md`, find the heading for the completed phase, and append the first 7 characters of the commit hash in the format `[checkpoint: <sha>]`.
     -   **Step 8.3: Write Plan:** Write the updated content back to `plan.md`.
 
-9. **Commit Plan Update:**
+9. **Request Plan Update Commit:**
     - **Action:** Stage the modified `plan.md` file.
-    - **Action:** Commit this change with a descriptive message following the format `conductor(plan): Mark phase '<PHASE NAME>' as complete`.
+    - **Action:** Propose a descriptive message following the format `conductor(plan): Mark phase '<PHASE NAME>' as complete`.
+    - **Action:** Ask user to commit.
 
 10.  **Announce Completion:** Inform the user that the phase is complete and the checkpoint has been created, with the detailed verification report attached as a git note.
 
