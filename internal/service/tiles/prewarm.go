@@ -118,6 +118,9 @@ func yRangeForBounds(north, south float64, zoom int) (int, int) {
 
 func (s *Service) PrewarmView(ctx context.Context, req model.PrewarmViewRequest) (model.PrewarmViewResponse, error) {
 	start := time.Now()
+	if err := ctx.Err(); err != nil {
+		return model.PrewarmViewResponse{}, err
+	}
 	provider, ok := s.cfg.Providers[req.ProviderKey]
 	if !ok {
 		return model.PrewarmViewResponse{}, fmt.Errorf("unknown provider")
@@ -189,6 +192,10 @@ func (s *Service) PrewarmView(ctx context.Context, req model.PrewarmViewRequest)
 		}, nil
 	}
 
+	if err := ctx.Err(); err != nil {
+		return model.PrewarmViewResponse{}, err
+	}
+
 	workerCount := defaultPrewarmConcurrency
 	if workerCount > total {
 		workerCount = total
@@ -232,6 +239,21 @@ func (s *Service) PrewarmView(ctx context.Context, req model.PrewarmViewRequest)
 		for _, seg := range xSegs {
 			for x := seg.min; x <= seg.max; x++ {
 				for y := yMin; y <= yMax; y++ {
+					if err := ctx.Err(); err != nil {
+						close(tasks)
+						wg.Wait()
+						slog.Info(
+							"Prewarm canceled",
+							"provider", req.ProviderKey,
+							"zoom_min", zoomMin,
+							"zoom_max", zoomMax,
+							"total", total,
+							"ok", atomic.LoadInt64(&okCount),
+							"failed", atomic.LoadInt64(&failedCount),
+							"duration_ms", time.Since(start).Milliseconds(),
+						)
+						return model.PrewarmViewResponse{}, err
+					}
 					select {
 					case <-ctx.Done():
 						close(tasks)

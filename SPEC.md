@@ -42,6 +42,7 @@ Updated: 2025-12-21
   - Frontend requests tiles through `/tiles/{provider}/{z}/{x}/{y}.(png|jpg)`; server swaps `{z,x,y}` into the provider template and proxies to upstream.
   - Tile cache stored under `cache/tiles/<provider>/<z>/<x>/<y>.<ext>` where `<ext>` matches the request (today the SPA always uses `.png`).
   - **Prewarm**: client “Download Current View” sends one `POST /api/prewarm-view`; server enumerates tiles for the requested view/zooms, honors provider TMS, downloads with limited concurrency, and stops early if the client aborts.
+  - **Prewarm**: if the request context is already canceled or cancels mid-enumeration, the server returns `context.Canceled` and stops scheduling new tiles.
   - Tile downloads and prewarm workers honor request context cancellation (including during retry backoff) to stop quickly on client aborts.
   - Known issue: providers that serve JPEG upstream (e.g. Maa-amet Foto) can be cached/served under a `.png` request path, which can lead to incorrect `Content-Type` headers when serving from disk.
   - Offline mode (`-offline`): cache-only serving; cache misses return 404 without calling upstream or writing to disk. Assumes cache warmed or pre-seeded.
