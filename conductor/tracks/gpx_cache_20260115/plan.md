@@ -2,11 +2,14 @@
 
 This plan follows the project's TDD-focused workflow.
 
-## Phase 1: Cache Storage & Model Definition
-- [ ] Task: Define the Metadata Cache structure and storage logic.
-    - [ ] Write unit tests for cache serialization and deserialization.
-    - [ ] Implement the `Cache` struct and methods in a new package `internal/service/gpx/cache`.
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: Cache Storage' (Protocol in workflow.md)
+## Phase 1: Cache Storage & Model Definition [checkpoint: 147a946]
+- [x] Task: Define the Metadata Cache structure and storage logic.
+    - [x] Write unit tests for cache serialization and deserialization.
+    - [x] Implement the `Cache` struct and methods in a new package `internal/service/gpx/cache`.
+- [x] Task: Implement GPX parser for metadata extraction.
+    - [x] Write unit tests for GPX metadata extraction.
+    - [x] Implement the parser using `encoding/xml`.
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Cache Storage' (Protocol in workflow.md) 147a946
 
 ## Phase 2: Integration with GPX Service
 - [ ] Task: Implement cache-aware file scanning.
