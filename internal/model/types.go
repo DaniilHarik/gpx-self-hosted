@@ -1,9 +1,22 @@
 package model
 
+import "time"
+
 type GPXFile struct {
-	Name         string `json:"name"`
-	Path         string `json:"path"`         // Relative path for fetching (with /data/ prefix)
-	RelativePath string `json:"relativePath"` // Path inside data dir, useful for displaying folders
+	Name         string       `json:"name"`
+	Path         string       `json:"path"`         // Relative path for fetching (with /data/ prefix)
+	RelativePath string       `json:"relativePath"` // Path inside data dir, useful for displaying folders
+	Metadata     *GPXMetadata `json:"metadata,omitempty"`
+}
+
+type GPXMetadata struct {
+	Distance      float64    `json:"distance"`      // in meters
+	Duration      float64    `json:"duration"`      // in seconds
+	ElevationGain float64    `json:"elevationGain"` // in meters
+	ElevationLoss float64    `json:"elevationLoss"` // in meters
+	Activity      string     `json:"activity"`
+	StartTime     *time.Time `json:"startTime,omitempty"`
+	Bounds        BoundsDTO  `json:"bounds"`
 }
 
 type ProviderDTO struct {
