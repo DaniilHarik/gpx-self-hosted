@@ -11,11 +11,11 @@ This plan follows the project's TDD-focused workflow.
     - [x] Implement the parser using `encoding/xml`.
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Cache Storage' (Protocol in workflow.md) 147a946
 
-## Phase 2: Integration with GPX Service
-- [ ] Task: Implement cache-aware file scanning.
-    - [ ] Write tests to verify that `ScanFiles` uses cached metadata when the file hasn't changed.
-    - [ ] Update `internal/service/gpx/service.go` to integrate the new caching logic.
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Service Integration' (Protocol in workflow.md)
+## Phase 2: Integration with GPX Service [checkpoint: 9d81518]
+- [x] Task: Implement cache-aware file scanning.
+    - [x] Write tests to verify that `ScanFiles` uses cached metadata when the file hasn't changed.
+    - [x] Update `internal/service/gpx/service.go` to integrate the new caching logic.
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Service Integration' (Protocol in workflow.md) 9d81518
 
 ## Phase 3: Performance Verification & Cleanup
 - [ ] Task: Verify performance gains and handle edge cases.
