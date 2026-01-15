@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -625,5 +626,56 @@ func TestGetDirSize(t *testing.T) {
 	}
 	if size != 10 {
 		t.Errorf("Expected size 10, got %d", size)
+	}
+}
+
+func TestServer_ListenAndServeAndShutdown(t *testing.T) {
+	cfg := &config.Config{
+		Port:      ":0", // Random port
+		StaticDir: t.TempDir(),
+		DataDir:   t.TempDir(),
+		CacheDir:  "/non-existent-dir-for-coverage",
+	}
+	srv := New(cfg)
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- srv.ListenAndServe()
+	}()
+
+	// Give it a moment to start
+	time.Sleep(100 * time.Millisecond)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		t.Fatalf("failed to shutdown server: %v", err)
+	}
+
+	err := <-errCh
+	if err != nil && err != http.ErrServerClosed {
+		t.Fatalf("ListenAndServe returned unexpected error: %v", err)
+	}
+}
+
+func TestListenAndServe_Fail(t *testing.T) {
+	cfg := &config.Config{
+		Port:      "99999", // Invalid port
+		StaticDir: t.TempDir(),
+		DataDir:   t.TempDir(),
+		CacheDir:  t.TempDir(),
+	}
+	srv := New(cfg)
+	err := srv.ListenAndServe()
+	if err == nil {
+		t.Error("expected error for invalid port, got nil")
+	}
+}
+
+func TestGetDirSize_Error(t *testing.T) {
+	_, err := getDirSize("/non-existent-path-that-should-fail")
+	if err == nil {
+		t.Error("expected error for non-existent path, got nil")
 	}
 }
