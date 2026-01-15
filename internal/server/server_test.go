@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -73,6 +74,14 @@ func TestListGPXFiles(t *testing.T) {
 	}
 	t.Cleanup(func() { os.RemoveAll(dataDir) })
 
+	cacheDir, err := os.MkdirTemp("", "gpx-cache-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp cache dir: %v", err)
+	}
+	t.Cleanup(func() { os.RemoveAll(cacheDir) })
+
+	validGPX := `<?xml version="1.0" encoding="UTF-8"?><gpx version="1.1"><trk><name>Test</name></trk></gpx>`
+
 	files := []string{"test1.gpx", "test2.gpx", "ignore.txt", "TEST3.GPX"}
 	activitiesDir := filepath.Join(dataDir, "Activities")
 	if err := os.MkdirAll(activitiesDir, 0755); err != nil {
@@ -80,7 +89,11 @@ func TestListGPXFiles(t *testing.T) {
 	}
 	for _, f := range files {
 		path := filepath.Join(activitiesDir, f)
-		if err := os.WriteFile(path, []byte("gpx data"), 0644); err != nil {
+		content := []byte(validGPX)
+		if strings.HasSuffix(f, ".txt") {
+			content = []byte("text data")
+		}
+		if err := os.WriteFile(path, content, 0644); err != nil {
 			t.Fatalf("Failed to create test file %s: %v", f, err)
 		}
 	}
@@ -89,7 +102,7 @@ func TestListGPXFiles(t *testing.T) {
 	if err := os.MkdirAll(nestedDir, 0755); err != nil {
 		t.Fatalf("Failed to create nested dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(nestedDir, "nested.gpx"), []byte("gpx data"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(nestedDir, "nested.gpx"), []byte(validGPX), 0644); err != nil {
 		t.Fatalf("Failed to create nested test file: %v", err)
 	}
 
@@ -97,16 +110,17 @@ func TestListGPXFiles(t *testing.T) {
 	if err := os.MkdirAll(plansDir, 0755); err != nil {
 		t.Fatalf("Failed to create Plans dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(plansDir, "plan.gpx"), []byte("gpx data"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(plansDir, "plan.gpx"), []byte(validGPX), 0644); err != nil {
 		t.Fatalf("Failed to create plan file: %v", err)
 	}
 
-	if err := os.WriteFile(filepath.Join(dataDir, "root.gpx"), []byte("gpx data"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dataDir, "root.gpx"), []byte(validGPX), 0644); err != nil {
 		t.Fatalf("Failed to create root file: %v", err)
 	}
 
 	cfg := &config.Config{
-		DataDir: dataDir,
+		DataDir:  dataDir,
+		CacheDir: cacheDir,
 	}
 	srv := New(cfg)
 
@@ -132,6 +146,9 @@ func TestListGPXFiles(t *testing.T) {
 	for _, f := range fileList {
 		if f.RelativePath == "Activities/sub/nested.gpx" && f.Path == "/data/Activities/sub/nested.gpx" {
 			foundNested = true
+			if f.Metadata == nil {
+				t.Error("expected metadata to be populated for valid GPX file")
+			}
 			break
 		}
 	}
