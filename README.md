@@ -130,28 +130,61 @@ Any folder name works, but the ones below get custom icons in the UI (case-insen
 
 ## Configuration
 
-### Tile providers
+The application supports multiple configuration sources with the following precedence:
+1.  **Command Line Flags** (highest priority)
+2.  **JSON Configuration File** (`config.json`)
+3.  **Environment Variables**
+4.  **Hardcoded Defaults** (lowest priority)
 
-Providers are configured server-side in `internal/config/config.go`. Current keys:
-- `openstreetmap`
-- `opentopomap`
-- `maaamet-kaart`
-- `maaamet-foto`
+### 1. JSON Configuration (`config.json`)
 
-#### CLI flags
+Create a `config.json` file in the root directory. You can override any of the settings, including tile providers.
+
+```json
+{
+  "Port": ":8080",
+  "DataDir": "./data",
+  "Providers": {
+    "openstreetmap": {
+      "Name": "OpenStreetMap",
+      "URLTemplate": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+      "IsTMS": false,
+      "Attribution": "© OpenStreetMap contributors",
+      "ZoomRange": [0, 19]
+    }
+  }
+}
 ```
--port=:8080              Port to listen on (e.g. :8080)
--static-dir=./static     Directory to serve static assets from
--data-dir=./data         Directory containing GPX files
--cache-dir=./cache       Directory to store cached map tiles
--client-timeout=10s      HTTP client timeout for tile downloads
--max-retries=3           Maximum retry attempts when downloading tiles
--offline=false           Serve tiles from cache only; do not download new tiles
+
+### 2. Environment Variables
+
+All settings can be set via environment variables prefixed with `GPX_SELF_HOST_`.
+
+| Variable | Description |
+| --- | --- |
+| `GPX_SELF_HOST_PORT` | Port to listen on (default `:8080`) |
+| `GPX_SELF_HOST_STATIC_DIR` | Directory to serve static assets from |
+| `GPX_SELF_HOST_DATA_DIR` | Directory containing GPX files |
+| `GPX_SELF_HOST_CACHE_DIR` | Directory to store cached map tiles |
+| `GPX_SELF_HOST_CLIENT_TIMEOUT` | HTTP client timeout (e.g., `10s`) |
+| `GPX_SELF_HOST_MAX_RETRIES` | Max retries for tile downloads |
+| `GPX_SELF_HOST_OFFLINE` | Enable offline mode (`true`/`false`) |
+
+### 3. CLI Flags
+
+```bash
+-port=:8080              Port to listen on
+-static-dir=./static     Directory for static assets
+-data-dir=./data         Directory for GPX files
+-cache-dir=./cache       Directory for tile cache
+-client-timeout=10s      HTTP client timeout
+-max-retries=3           Max retry attempts
+-offline=false           Enable offline mode
 ```
 
 #### Offline mode
 
-Run with `-offline` to block all upstream tile downloads and serve map tiles from the local cache only.
-- Warm the cache while online (browse the areas/zooms you care about, or copy a prepared `cache/tiles` tree into place).
+Run with `-offline` (or set `Offline: true` in JSON/ENV) to block all upstream tile downloads and serve map tiles from the local cache only.
+- Warm the cache while online (browse the areas/zooms you care about, or use the "Download Current View" feature).
 - Start the server with `./run.sh -offline`.
 - If a requested tile is missing from the cache, the server returns `404` instead of reaching out to the provider.
