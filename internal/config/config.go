@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -43,6 +44,8 @@ func Load() *Config {
 // hardcoded values.
 // Precedence: CLI > JSON > ENV > Defaults
 func Parse(fs *flag.FlagSet, args []string) (*Config, error) {
+	sources := []string{"Defaults"}
+
 	defaultConfig := Config{
 		Port:          ":8080",
 		StaticDir:     "./static",
@@ -55,38 +58,50 @@ func Parse(fs *flag.FlagSet, args []string) (*Config, error) {
 	}
 
 	// Override defaults with Environment Variables if present
+	envFound := false
 	if v := os.Getenv("GPX_SELF_HOST_PORT"); v != "" {
 		defaultConfig.Port = v
+		envFound = true
 	}
 	if v := os.Getenv("GPX_SELF_HOST_STATIC_DIR"); v != "" {
 		defaultConfig.StaticDir = v
+		envFound = true
 	}
 	if v := os.Getenv("GPX_SELF_HOST_DATA_DIR"); v != "" {
 		defaultConfig.DataDir = v
+		envFound = true
 	}
 	if v := os.Getenv("GPX_SELF_HOST_CACHE_DIR"); v != "" {
 		defaultConfig.CacheDir = v
+		envFound = true
 	}
 	if v := os.Getenv("GPX_SELF_HOST_CLIENT_TIMEOUT"); v != "" {
 		if d, err := time.ParseDuration(v); err == nil {
 			defaultConfig.ClientTimeout = d
+			envFound = true
 		}
 	}
 	if v := os.Getenv("GPX_SELF_HOST_MAX_RETRIES"); v != "" {
 		if i, err := strconv.Atoi(v); err == nil {
 			defaultConfig.MaxRetries = i
+			envFound = true
 		}
 	}
 	if v := os.Getenv("GPX_SELF_HOST_OFFLINE"); v != "" {
 		if b, err := strconv.ParseBool(v); err == nil {
 			defaultConfig.Offline = b
+			envFound = true
 		}
+	}
+	if envFound {
+		sources = append(sources, "Environment Variables")
 	}
 
 	// Override with JSON if config.json exists
 	if data, err := os.ReadFile("config.json"); err == nil {
 		var jsonConfig Config
 		if err := json.Unmarshal(data, &jsonConfig); err == nil {
+			sources = append(sources, "config.json")
 			if jsonConfig.Port != "" {
 				defaultConfig.Port = jsonConfig.Port
 			}
@@ -125,6 +140,16 @@ func Parse(fs *flag.FlagSet, args []string) (*Config, error) {
 	if err := fs.Parse(args); err != nil {
 		return nil, err
 	}
+
+	cliFound := false
+	fs.Visit(func(f *flag.Flag) {
+		cliFound = true
+	})
+	if cliFound {
+		sources = append(sources, "Command Line Flags")
+	}
+
+	log.Printf("Configuration loaded from: %s", strings.Join(sources, ", "))
 
 	return &Config{
 		Port:          *port,
