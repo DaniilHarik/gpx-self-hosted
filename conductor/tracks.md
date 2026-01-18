@@ -9,5 +9,5 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-- [~] **Track: Implement env/JSON config support to complement CLI flags**
+- [x] **Track: Implement env/JSON config support to complement CLI flags**
 *Link: [./tracks/config_env_json_20260117/](./tracks/config_env_json_20260117/)*
