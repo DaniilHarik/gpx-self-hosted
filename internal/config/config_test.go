@@ -2,6 +2,7 @@ package config
 
 import (
 	"flag"
+	"os"
 	"testing"
 	"time"
 )
@@ -115,6 +116,52 @@ func TestParse_EnvironmentVariables(t *testing.T) {
 	}
 	if cfg.Offline != true {
 		t.Error("expected offline true from env")
+	}
+}
+
+func TestParse_JSONConfig(t *testing.T) {
+	configContent := `{
+		"Port": ":6060",
+		"StaticDir": "/json/static",
+		"DataDir": "/json/data",
+		"CacheDir": "/json/cache",
+		"ClientTimeout": 20000000000,
+		"MaxRetries": 15,
+		"Offline": true,
+		"Providers": {
+			"custom": {
+				"Name": "Custom Provider",
+				"URLTemplate": "https://example.com/{z}/{x}/{y}.png",
+				"IsTMS": false,
+				"Attribution": "Example",
+				"ZoomRange": [0, 10]
+			}
+		}
+	}`
+	err := os.WriteFile("config.json", []byte(configContent), 0644)
+	if err != nil {
+		t.Fatalf("failed to create config.json: %v", err)
+	}
+	defer os.Remove("config.json")
+
+	fs := flag.NewFlagSet("test", flag.ContinueOnError)
+	cfg, err := Parse(fs, []string{})
+	if err != nil {
+		t.Fatalf("Parse failed: %v", err)
+	}
+
+	if cfg.Port != ":6060" {
+		t.Errorf("expected port :6060 from JSON, got %s", cfg.Port)
+	}
+	if cfg.StaticDir != "/json/static" {
+		t.Errorf("expected static dir /json/static from JSON, got %s", cfg.StaticDir)
+	}
+	if cfg.Providers["custom"].Name != "Custom Provider" {
+		t.Errorf("expected custom provider, got %v", cfg.Providers["custom"].Name)
+	}
+	// Verify override: default providers should be gone
+	if _, ok := cfg.Providers["openstreetmap"]; ok {
+		t.Error("expected default providers to be overridden by JSON")
 	}
 }
 

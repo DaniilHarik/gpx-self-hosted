@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"flag"
 	"log"
 	"os"
@@ -81,6 +82,37 @@ func Parse(fs *flag.FlagSet, args []string) (*Config, error) {
 		}
 	}
 
+	// Override with JSON if config.json exists
+	if data, err := os.ReadFile("config.json"); err == nil {
+		var jsonConfig Config
+		if err := json.Unmarshal(data, &jsonConfig); err == nil {
+			if jsonConfig.Port != "" {
+				defaultConfig.Port = jsonConfig.Port
+			}
+			if jsonConfig.StaticDir != "" {
+				defaultConfig.StaticDir = jsonConfig.StaticDir
+			}
+			if jsonConfig.DataDir != "" {
+				defaultConfig.DataDir = jsonConfig.DataDir
+			}
+			if jsonConfig.CacheDir != "" {
+				defaultConfig.CacheDir = jsonConfig.CacheDir
+			}
+			if jsonConfig.ClientTimeout != 0 {
+				defaultConfig.ClientTimeout = jsonConfig.ClientTimeout
+			}
+			if jsonConfig.MaxRetries != 0 {
+				defaultConfig.MaxRetries = jsonConfig.MaxRetries
+			}
+			if jsonConfig.Offline {
+				defaultConfig.Offline = jsonConfig.Offline
+			}
+			if len(jsonConfig.Providers) > 0 {
+				defaultConfig.Providers = jsonConfig.Providers
+			}
+		}
+	}
+
 	port := fs.String("port", defaultConfig.Port, "Port to listen on (e.g. :8080)")
 	staticDir := fs.String("static-dir", defaultConfig.StaticDir, "Directory to serve static assets from")
 	dataDir := fs.String("data-dir", defaultConfig.DataDir, "Directory containing GPX files")
@@ -100,7 +132,7 @@ func Parse(fs *flag.FlagSet, args []string) (*Config, error) {
 		CacheDir:      *cacheDir,
 		ClientTimeout: *clientTimeout,
 		MaxRetries:    *maxRetries,
-		Providers:     defaultProviders(),
+		Providers:     defaultConfig.Providers,
 		Offline:       *offline,
 	}, nil
 }
