@@ -2,12 +2,12 @@
 
 This plan outlines the steps to implement configuration support via environment variables and a JSON file, following the precedence: CLI > JSON > ENV > Defaults.
 
-## Phase 1: Environment Variable Support
+## Phase 1: Environment Variable Support [checkpoint: 624d545]
 Goal: Allow configuration values to be set via environment variables with the `GPX_SELF_HOST_` prefix.
 
 - [x] Task: Write tests in `internal/config/config_test.go` to verify that environment variables are correctly mapped to the `Config` struct. [1aa5da5]
 - [x] Task: Implement a mechanism (e.g., a `loadEnv` function) to populate the `Config` struct from environment variables (e.g., `GPX_SELF_HOST_PORT`). [1aa5da5]
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: Environment Variable Support' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Environment Variable Support' (Protocol in workflow.md) [624d545]
 
 ## Phase 2: JSON Configuration Support
 Goal: Support loading configuration from a `config.json` file in the current directory, including full override of tile providers.
