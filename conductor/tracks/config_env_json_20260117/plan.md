@@ -20,7 +20,7 @@ Goal: Support loading configuration from a `config.json` file in the current dir
 ## Phase 3: Integration and Precedence Verification
 Goal: Integrate all configuration sources into the `Parse` function and verify the correct hierarchy.
 
-- [ ] Task: Refactor the `Parse` function in `internal/config/config.go` to apply configuration sources in the order: Defaults -> ENV -> JSON -> CLI.
-- [ ] Task: Write comprehensive integration tests verifying the full precedence hierarchy (e.g., ensuring a CLI flag overrides a value in `config.json`).
-- [ ] Task: Update the `Load` function to ensure errors during parsing (like invalid JSON) are handled gracefully (logging and exiting).
+- [x] Task: Refactor the `Parse` function in `internal/config/config.go` to apply configuration sources in the order: Defaults -> ENV -> JSON -> CLI. [eafa88b]
+- [x] Task: Write comprehensive integration tests verifying the full precedence hierarchy (e.g., ensuring a CLI flag overrides a value in `config.json`). [eafa88b]
+- [x] Task: Update the `Load` function to ensure errors during parsing (like invalid JSON) are handled gracefully (logging and exiting). [eafa88b]
 - [ ] Task: Conductor - User Manual Verification 'Phase 3: Full Precedence Integration' (Protocol in workflow.md)
