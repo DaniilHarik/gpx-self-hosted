@@ -78,6 +78,7 @@ Updated: 2025-12-21
 - No upload UI; users must place files in the `data` directory and refresh—do we need drag-and-drop or live reload?
 - Authentication/ACLs are absent; intended for trusted local networks—any need for basic auth?
 - Raw file serving and tile proxy paths are permissive (directory listings, symlinks, unvalidated `{z}/{x}/{y}`); tighten validation and cache write safety before exposing to untrusted networks.
+- Historical note: a "prewarm/download current view" tile cache feature was tried but proved fragile and was removed.
 
 ## Security & Reliability (Summary)
 See [SECURITY.md](SECURITY.md) for the full hardening roadmap. Key focus areas include tile proxy parameter validation, concurrency control for downloads, and atomic file writes.
