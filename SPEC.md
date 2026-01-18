@@ -27,8 +27,9 @@ Updated: 2025-12-21
 
 ## Functional Requirements
 - Startup/Config
-  - CLI flags: `-port`, `-static-dir`, `-data-dir`, `-cache-dir`, `-client-timeout`, `-max-retries`, `-offline`; sensible defaults (`:8080`, `./static`, `./data`, `./cache`, `10s`, `3`, `false`).
-  - Tile providers are defined in config (name, URL template, TMS flag, attribution, zoom min/max); default set includes OpenStreetMap, OpenTopoMap, and two Maa-amet layers.
+  - Configuration sources: CLI flags, `config.json`, and environment variables (`GPX_SELF_HOST_*`); Precedence: CLI > JSON > ENV > Defaults.
+  - Options: `-port`, `-static-dir`, `-data-dir`, `-cache-dir`, `-client-timeout`, `-max-retries`, `-offline`; sensible defaults (`:8080`, `./static`, `./data`, `./cache`, `10s`, `3`, `false`).
+  - Tile providers are defined in config (name, URL template, TMS flag, attribution, zoom min/max); default set includes OpenStreetMap, OpenTopoMap, and two Maa-amet layers; can be overridden via `config.json`.
 - UI Theming
   - Theme supports explicit `light`/`dark` modes; default derives from `prefers-color-scheme` if no saved preference exists.
   - Theme preference persists client-side in `localStorage` (`gpx-self-hosted-theme`).
@@ -79,7 +80,6 @@ Updated: 2025-12-21
 ## Constraints and Open Questions
 - Upstream tile provider rate limits and legal terms must be observed; no throttling built in.
 - Cache eviction/TTL not implemented—manual clearing required; should a size cap be enforced?
-- Configuration only via CLI flags today; README TODOs call for env/JSON configuration support.
 - No upload UI; users must place files in the `data` directory and refresh—do we need drag-and-drop or live reload?
 - Authentication/ACLs are absent; intended for trusted local networks—any need for basic auth?
 - Raw file serving and tile proxy paths are permissive (directory listings, symlinks, unvalidated `{z}/{x}/{y}`); tighten validation and cache write safety before exposing to untrusted networks.
