@@ -12,9 +12,9 @@ Goal: Allow configuration values to be set via environment variables with the `G
 ## Phase 2: JSON Configuration Support
 Goal: Support loading configuration from a `config.json` file in the current directory, including full override of tile providers.
 
-- [ ] Task: Write tests for JSON configuration parsing, ensuring that fields like `Port`, `DataDir`, and `Providers` are correctly handled.
-- [ ] Task: Implement a mechanism to load and parse `config.json` from the current working directory if it exists.
-- [ ] Task: Ensure that if `Providers` is defined in the JSON file, it completely replaces the default providers.
+- [x] Task: Write tests for JSON configuration parsing, ensuring that fields like `Port`, `DataDir`, and `Providers` are correctly handled. [1898a1f]
+- [x] Task: Implement a mechanism to load and parse `config.json` from the current working directory if it exists. [1898a1f]
+- [x] Task: Ensure that if `Providers` is defined in the JSON file, it completely replaces the default providers. [1898a1f]
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: JSON Configuration Support' (Protocol in workflow.md)
 
 ## Phase 3: Integration and Precedence Verification
