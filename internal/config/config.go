@@ -4,6 +4,7 @@ import (
 	"flag"
 	"log"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -49,6 +50,35 @@ func Parse(fs *flag.FlagSet, args []string) (*Config, error) {
 		MaxRetries:    3,
 		Offline:       false,
 		Providers:     defaultProviders(),
+	}
+
+	// Override defaults with Environment Variables if present
+	if v := os.Getenv("GPX_SELF_HOST_PORT"); v != "" {
+		defaultConfig.Port = v
+	}
+	if v := os.Getenv("GPX_SELF_HOST_STATIC_DIR"); v != "" {
+		defaultConfig.StaticDir = v
+	}
+	if v := os.Getenv("GPX_SELF_HOST_DATA_DIR"); v != "" {
+		defaultConfig.DataDir = v
+	}
+	if v := os.Getenv("GPX_SELF_HOST_CACHE_DIR"); v != "" {
+		defaultConfig.CacheDir = v
+	}
+	if v := os.Getenv("GPX_SELF_HOST_CLIENT_TIMEOUT"); v != "" {
+		if d, err := time.ParseDuration(v); err == nil {
+			defaultConfig.ClientTimeout = d
+		}
+	}
+	if v := os.Getenv("GPX_SELF_HOST_MAX_RETRIES"); v != "" {
+		if i, err := strconv.Atoi(v); err == nil {
+			defaultConfig.MaxRetries = i
+		}
+	}
+	if v := os.Getenv("GPX_SELF_HOST_OFFLINE"); v != "" {
+		if b, err := strconv.ParseBool(v); err == nil {
+			defaultConfig.Offline = b
+		}
 	}
 
 	port := fs.String("port", defaultConfig.Port, "Port to listen on (e.g. :8080)")

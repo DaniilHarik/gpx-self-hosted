@@ -78,6 +78,46 @@ func TestParse_Error(t *testing.T) {
 	}
 }
 
+func TestParse_EnvironmentVariables(t *testing.T) {
+	// Set environment variables
+	t.Setenv("GPX_SELF_HOST_PORT", ":7070")
+	t.Setenv("GPX_SELF_HOST_STATIC_DIR", "/env/static")
+	t.Setenv("GPX_SELF_HOST_DATA_DIR", "/env/data")
+	t.Setenv("GPX_SELF_HOST_CACHE_DIR", "/env/cache")
+	t.Setenv("GPX_SELF_HOST_CLIENT_TIMEOUT", "15s")
+	t.Setenv("GPX_SELF_HOST_MAX_RETRIES", "10")
+	t.Setenv("GPX_SELF_HOST_OFFLINE", "true")
+
+	fs := flag.NewFlagSet("test", flag.ContinueOnError)
+	// Parse with empty args, should fall back to ENV
+	cfg, err := Parse(fs, []string{})
+	if err != nil {
+		t.Fatalf("Parse failed: %v", err)
+	}
+
+	if cfg.Port != ":7070" {
+		t.Errorf("expected port :7070 from env, got %s", cfg.Port)
+	}
+	if cfg.StaticDir != "/env/static" {
+		t.Errorf("expected static dir /env/static from env, got %s", cfg.StaticDir)
+	}
+	if cfg.DataDir != "/env/data" {
+		t.Errorf("expected data dir /env/data from env, got %s", cfg.DataDir)
+	}
+	if cfg.CacheDir != "/env/cache" {
+		t.Errorf("expected cache dir /env/cache from env, got %s", cfg.CacheDir)
+	}
+	if cfg.ClientTimeout != 15*time.Second {
+		t.Errorf("expected timeout 15s from env, got %v", cfg.ClientTimeout)
+	}
+	if cfg.MaxRetries != 10 {
+		t.Errorf("expected max retries 10 from env, got %d", cfg.MaxRetries)
+	}
+	if cfg.Offline != true {
+		t.Error("expected offline true from env")
+	}
+}
+
 func TestLoad(t *testing.T) {
 	// Load uses flag.CommandLine and os.Args.
 	// We can't easily change os.Args safely in tests without affecting others,
