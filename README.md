@@ -136,7 +136,19 @@ The application supports multiple configuration sources with the following prece
 3.  **Environment Variables**
 4.  **Hardcoded Defaults** (lowest priority)
 
-### 1. JSON Configuration (`config.json`)
+### CLI Flags
+
+```bash
+-port=:8080              Port to listen on
+-static-dir=./static     Directory for static assets
+-data-dir=./data         Directory for GPX files
+-cache-dir=./cache       Directory for tile cache
+-client-timeout=10s      HTTP client timeout
+-max-retries=3           Max retry attempts
+-offline=false           Enable offline mode
+```
+
+### JSON Configuration (`config.json`)
 
 Create a `config.json` file in the root directory. You can override any of the settings, including tile providers.
 
@@ -156,7 +168,7 @@ Create a `config.json` file in the root directory. You can override any of the s
 }
 ```
 
-### 2. Environment Variables
+### Environment Variables
 
 All settings can be set via environment variables prefixed with `GPX_SELF_HOST_`.
 
@@ -170,17 +182,6 @@ All settings can be set via environment variables prefixed with `GPX_SELF_HOST_`
 | `GPX_SELF_HOST_MAX_RETRIES` | Max retries for tile downloads |
 | `GPX_SELF_HOST_OFFLINE` | Enable offline mode (`true`/`false`) |
 
-### 3. CLI Flags
-
-```bash
--port=:8080              Port to listen on
--static-dir=./static     Directory for static assets
--data-dir=./data         Directory for GPX files
--cache-dir=./cache       Directory for tile cache
--client-timeout=10s      HTTP client timeout
--max-retries=3           Max retry attempts
--offline=false           Enable offline mode
-```
 
 #### Offline mode
 
