@@ -165,6 +165,42 @@ func TestParse_JSONConfig(t *testing.T) {
 	}
 }
 
+func TestParse_FullPrecedence(t *testing.T) {
+	// ENV: Port :7070, StaticDir /env/static
+	t.Setenv("GPX_SELF_HOST_PORT", ":7070")
+	t.Setenv("GPX_SELF_HOST_STATIC_DIR", "/env/static")
+
+	// JSON: Port :6060, DataDir /json/data
+	configContent := `{"Port": ":6060", "DataDir": "/json/data"}`
+	err := os.WriteFile("config.json", []byte(configContent), 0644)
+	if err != nil {
+		t.Fatalf("failed to create config.json: %v", err)
+	}
+	defer os.Remove("config.json")
+
+	// CLI: Port :5050
+	args := []string{"-port", ":5050"}
+
+	fs := flag.NewFlagSet("test", flag.ContinueOnError)
+	cfg, err := Parse(fs, args)
+	if err != nil {
+		t.Fatalf("Parse failed: %v", err)
+	}
+
+	// CLI overrides JSON and ENV
+	if cfg.Port != ":5050" {
+		t.Errorf("expected port :5050 (CLI), got %s", cfg.Port)
+	}
+	// JSON overrides ENV
+	if cfg.DataDir != "/json/data" {
+		t.Errorf("expected data dir /json/data (JSON), got %s", cfg.DataDir)
+	}
+	// ENV overrides Default
+	if cfg.StaticDir != "/env/static" {
+		t.Errorf("expected static dir /env/static (ENV), got %s", cfg.StaticDir)
+	}
+}
+
 func TestLoad(t *testing.T) {
 	// Load uses flag.CommandLine and os.Args.
 	// We can't easily change os.Args safely in tests without affecting others,

@@ -41,6 +41,7 @@ func Load() *Config {
 
 // Parse allows configuration via CLI flags; defaults mirror the previous
 // hardcoded values.
+// Precedence: CLI > JSON > ENV > Defaults
 func Parse(fs *flag.FlagSet, args []string) (*Config, error) {
 	defaultConfig := Config{
 		Port:          ":8080",
