@@ -9,13 +9,13 @@ Goal: Allow configuration values to be set via environment variables with the `G
 - [x] Task: Implement a mechanism (e.g., a `loadEnv` function) to populate the `Config` struct from environment variables (e.g., `GPX_SELF_HOST_PORT`). [1aa5da5]
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Environment Variable Support' (Protocol in workflow.md) [624d545]
 
-## Phase 2: JSON Configuration Support
+## Phase 2: JSON Configuration Support [checkpoint: eaf370e]
 Goal: Support loading configuration from a `config.json` file in the current directory, including full override of tile providers.
 
 - [x] Task: Write tests for JSON configuration parsing, ensuring that fields like `Port`, `DataDir`, and `Providers` are correctly handled. [1898a1f]
 - [x] Task: Implement a mechanism to load and parse `config.json` from the current working directory if it exists. [1898a1f]
 - [x] Task: Ensure that if `Providers` is defined in the JSON file, it completely replaces the default providers. [1898a1f]
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: JSON Configuration Support' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 2: JSON Configuration Support' (Protocol in workflow.md) [eaf370e]
 
 ## Phase 3: Integration and Precedence Verification
 Goal: Integrate all configuration sources into the `Parse` function and verify the correct hierarchy.
