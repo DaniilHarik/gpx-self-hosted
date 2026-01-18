@@ -14,6 +14,7 @@ A lightweight, self-hosted web application for browsing, visualizing, and drawin
 - **Automatic Indexing**: Seamlessly scan local directories for GPX files and display them in the UI.
 - **Interactive Visualization**: Provide a map-centric interface for viewing tracks with multiple layer options (OSM, Topo, etc.).
 - **Track Creation**: Enable users to draw new routes directly on the map and export them for use in other devices.
+- **Flexible Configuration**: Support for environment variables and JSON configuration files, simplifying deployment in Docker and other self-hosted environments.
 
 ## User Experience
 - **Lightweight and Fast**: A minimalistic design that focuses on performance and core utility.

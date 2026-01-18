@@ -14,3 +14,5 @@
 ## Infrastructure & Tooling
 - **Local Storage**: Filesystem-based storage for GPX files and map tile cache.
 - **Version Control**: Git
+- **Configuration**:
+    - **Precedence**: CLI flags > JSON file (`config.json`) > Environment variables (prefixed with `GPX_SELF_HOST_`) > Hardcoded defaults.
