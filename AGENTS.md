@@ -46,12 +46,9 @@ tile caching.
 
 ## Feature specifics
 - Multi-track mode: `isMultiTrackMode` in `static/js/app.js`.
-- Prewarm view: `/api/prewarm-view` populates tile cache for bbox + zoom range.
 - Plans view: `data/Plans/` is handled separately from `data/Activities/`.
 
 ## Technical details
 - Tile cache keeps original extension; mismatches can cause incorrect
   `Content-Type` when serving cached JPEGs as `.png`.
 - Tile downloads are not synchronized; concurrent requests can race on writes.
-- Prewarm defaults to 8 workers, 50,000 tile hard limit, and respects context
-  cancellation.

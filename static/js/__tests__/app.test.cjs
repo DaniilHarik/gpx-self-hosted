@@ -23,6 +23,7 @@ async function bootstrapApp(options = {}) {
         tileConfigError = null,
         includeDrawToolbar = false,
         tileLayerFactory,
+        controlLayers,
         captureExportHandler = false,
         initialTheme = 'dark'
     } = options;
@@ -181,8 +182,8 @@ async function bootstrapApp(options = {}) {
         ])
     };
 
-    const existingControlLayers = global.L && global.L.control && global.L.control.layers;
-    const controlLayers = typeof existingControlLayers === 'function'
+    const existingControlLayers = controlLayers || (global.L && global.L.control && global.L.control.layers);
+    const controlLayersFn = typeof existingControlLayers === 'function'
         ? existingControlLayers
         : jest.fn(() => ({
             addTo: jest.fn()
@@ -196,7 +197,7 @@ async function bootstrapApp(options = {}) {
             return layer;
         }),
         control: {
-            layers: controlLayers
+            layers: controlLayersFn
         },
         GPX: jest.fn(() => gpxMock),
         FeatureGroup: jest.fn(() => featureGroupMock),
@@ -258,199 +259,10 @@ async function bootstrapApp(options = {}) {
     return { app, featureGroupMock, featureGroupState, mapMock, tileLayers: createdTileLayers, exportClickHandler, gpxMock };
 }
 
-describe('Offline cache pre-warming', () => {
-    test('renders Download Current View as a map control in the top right corner', async () => {
-        await bootstrapApp({ gpxFiles: [] });
-        const corner = document.querySelector('#map .leaflet-top.leaflet-right');
-        expect(corner).toBeTruthy();
-        expect(corner.firstElementChild).toBeTruthy();
-        expect(corner.firstElementChild.classList.contains('map-offline-tools')).toBe(true);
-        expect(document.getElementById('download-current-view')).toBeTruthy();
-        expect(document.getElementById('download-current-view-status').textContent).toContain('Ready');
-    });
-
-    test('shows confirm UI and toggles back when canceling', async () => {
-        await bootstrapApp({ gpxFiles: [] });
-        const button = document.getElementById('download-current-view');
-        const confirmArea = document.getElementById('prewarm-confirm-area');
-
-        expect(confirmArea.classList.contains('hidden')).toBe(true);
-        button.click();
-        expect(confirmArea.classList.contains('hidden')).toBe(false);
-        expect(button.classList.contains('hidden')).toBe(true);
-
-        document.getElementById('prewarm-confirm-no').click();
-        expect(confirmArea.classList.contains('hidden')).toBe(true);
-        expect(button.classList.contains('hidden')).toBe(false);
-    });
-
-    test('does not start downloading when confirm is declined', async () => {
-        window.confirm = jest.fn(() => false);
-        await bootstrapApp({
-            gpxFiles: [],
-            tileConfig: {
-                initial: 'opentopomap',
-                offline: false,
-                providers: {
-                    opentopomap: { name: 'OpenTopoMap', isTMS: false, minZoom: 0, maxZoom: 0 }
-                }
-            }
-        });
-
-        const button = document.getElementById('download-current-view');
-        button.click();
-
-        const prewarmCalls = global.fetch.mock.calls.filter(([url]) => url === '/api/prewarm-view');
-        expect(prewarmCalls).toHaveLength(0);
-    });
-
-    test('downloads tiles for current view and updates status', async () => {
-        window.confirm = jest.fn(() => true);
-        const prewarmSpy = jest.fn(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ providerKey: 'opentopomap', zoomMin: 0, zoomMax: 0, total: 1, ok: 1, failed: 0 }) }));
-
-        await bootstrapApp({
-            gpxFiles: [],
-            tileConfig: {
-                initial: 'opentopomap',
-                offline: false,
-                providers: {
-                    opentopomap: { name: 'OpenTopoMap', isTMS: false, minZoom: 0, maxZoom: 0 }
-                }
-            }
-        });
-
-        global.fetch.mockImplementation((url, opts) => {
-            if (url === '/api/tile-config') return Promise.resolve({ json: () => Promise.resolve({ initial: 'opentopomap', offline: false, providers: { opentopomap: { name: 'OpenTopoMap', isTMS: false, minZoom: 0, maxZoom: 0 } } }) });
-            if (url === '/api/gpx') return Promise.resolve({ json: () => Promise.resolve([]) });
-            if (url === '/api/prewarm-view') return prewarmSpy(url, opts);
-            return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) });
-        });
-
-        const appTick = () => new Promise(resolve => setTimeout(resolve, 0));
-        await appTick();
-
-        const button = document.getElementById('download-current-view');
-        button.click();
-        await appTick();
-        document.getElementById('prewarm-confirm-yes').click();
-        await appTick();
-        await appTick();
-
-        expect(prewarmSpy).toHaveBeenCalledTimes(1);
-        const status = document.getElementById('download-current-view-status').textContent;
-        expect(status).toContain('Done');
-        expect(status).toContain('1/1');
-    });
-
-    test('shows failure status when prewarm request fails', async () => {
-        const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
-        await bootstrapApp({
-            gpxFiles: [],
-            tileConfig: {
-                initial: 'opentopomap',
-                offline: false,
-                providers: {
-                    opentopomap: { name: 'OpenTopoMap', isTMS: false, minZoom: 0, maxZoom: 0 }
-                }
-            }
-        });
-
-        global.fetch.mockImplementation((url) => {
-            if (url === '/api/prewarm-view') {
-                return Promise.resolve({ ok: false, status: 500, json: () => Promise.resolve({}) });
-            }
-            return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) });
-        });
-
-        const appTick = () => new Promise(resolve => setTimeout(resolve, 0));
-        await appTick();
-
-        document.getElementById('download-current-view').click();
-        await appTick();
-        document.getElementById('prewarm-confirm-yes').click();
-        await appTick();
-        await appTick();
-
-        expect(document.getElementById('download-current-view-status').textContent).toContain('Failed');
-        expect(consoleErrorSpy).toHaveBeenCalled();
-        consoleErrorSpy.mockRestore();
-    });
-
-    test('cancel aborts in-flight downloads and shows Canceled', async () => {
-        window.confirm = jest.fn(() => true);
-
-        await bootstrapApp({
-            gpxFiles: [],
-            tileConfig: {
-                initial: 'opentopomap',
-                offline: false,
-                providers: {
-                    opentopomap: { name: 'OpenTopoMap', isTMS: false, minZoom: 0, maxZoom: 2 }
-                }
-            }
-        });
-
-        const neverResolvingFetch = jest.fn((url, opts = {}) => {
-            if (url !== '/api/prewarm-view') return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) });
-            return new Promise((resolve, reject) => {
-                if (opts.signal) {
-                    opts.signal.addEventListener('abort', () => {
-                        const err = new Error('aborted');
-                        err.name = 'AbortError';
-                        reject(err);
-                    });
-                }
-            });
-        });
-
-        global.fetch.mockImplementation((url, opts) => {
-            if (url === '/api/tile-config') {
-                return Promise.resolve({
-                    json: () => Promise.resolve({
-                        initial: 'opentopomap',
-                        offline: false,
-                        providers: { opentopomap: { name: 'OpenTopoMap', isTMS: false, minZoom: 0, maxZoom: 2 } }
-                    })
-                });
-            }
-            if (url === '/api/gpx') return Promise.resolve({ json: () => Promise.resolve([]) });
-            return neverResolvingFetch(url, opts);
-        });
-
-        const appTick = () => new Promise(resolve => setTimeout(resolve, 0));
-        await appTick();
-
-        const button = document.getElementById('download-current-view');
-        const cancel = document.getElementById('download-current-view-cancel');
-        button.click();
-        await appTick();
-        document.getElementById('prewarm-confirm-yes').click();
-        await appTick();
-        cancel.click();
-        await appTick();
-        await appTick();
-        await appTick();
-
-        expect(document.getElementById('download-current-view-status').textContent).toContain('Canceled');
-    });
-
-    test('disables download when no active tile provider exists', async () => {
-        await bootstrapApp({
-            gpxFiles: [],
-            tileConfig: {
-                providers: {}
-            }
-        });
-
-        const button = document.getElementById('download-current-view');
-        const status = document.getElementById('download-current-view-status').textContent;
-        expect(button.disabled).toBe(true);
-        expect(status).toContain('No active base layer');
-    });
-
+describe('Map layer selection', () => {
     test('persists selected layer to localStorage on baselayerchange', async () => {
         let captureBaseLayers = null;
-        global.L.control.layers.mockImplementationOnce((baseLayers) => {
+        const controlLayers = jest.fn((baseLayers) => {
             captureBaseLayers = baseLayers;
             return { addTo: jest.fn() };
         });
@@ -462,7 +274,8 @@ describe('Offline cache pre-warming', () => {
                     osm: { name: 'OSM' },
                     topo: { name: 'Topo' }
                 }
-            }
+            },
+            controlLayers
         });
 
         const baselayerchangeHandler = mapMock.on.mock.calls.find(([event]) => event === 'baselayerchange')[1];
@@ -483,7 +296,7 @@ describe('Offline cache pre-warming', () => {
         });
 
         let captureBaseLayers = null;
-        global.L.control.layers.mockImplementationOnce((baseLayers) => {
+        const controlLayers = jest.fn((baseLayers) => {
             captureBaseLayers = baseLayers;
             return { addTo: jest.fn() };
         });
@@ -495,7 +308,8 @@ describe('Offline cache pre-warming', () => {
                     osm: { name: 'OSM' },
                     topo: { name: 'Topo' }
                 }
-            }
+            },
+            controlLayers
         });
 
         const topoLayer = captureBaseLayers['Topo'];
@@ -1396,68 +1210,6 @@ describe('App edge cases', () => {
         expect(cb.checked).toBe(true);
         expect(item.classList.contains('active')).toBe(true);
     });
-    test('offline pre-warm: disabled button when server is in offline mode', async () => {
-        await bootstrapApp({
-            gpxFiles: [],
-            tileConfig: {
-                initial: 'opentopomap',
-                offline: true,
-                providers: {
-                    opentopomap: { name: 'OpenTopoMap', isTMS: false, minZoom: 0, maxZoom: 18 }
-                }
-            }
-        });
-
-        const button = document.getElementById('download-current-view');
-        expect(button.disabled).toBe(true);
-        expect(document.getElementById('download-current-view-status').textContent).toContain('offline mode');
-    });
-
-    test('offline pre-warm: handles partial failures and updates status', async () => {
-        window.confirm = jest.fn(() => true);
-        const prewarmSpy = jest.fn(() => Promise.resolve({
-            ok: true,
-            status: 200,
-            json: () => Promise.resolve({
-                providerKey: 'opentopomap',
-                zoomMin: 0,
-                zoomMax: 0,
-                total: 10,
-                ok: 8,
-                failed: 2
-            })
-        }));
-
-        await bootstrapApp({
-            gpxFiles: [],
-            tileConfig: {
-                initial: 'opentopomap',
-                offline: false,
-                providers: {
-                    opentopomap: { name: 'OpenTopoMap', isTMS: false, minZoom: 0, maxZoom: 0 }
-                }
-            }
-        });
-
-        global.fetch.mockImplementation((url, opts) => {
-            if (url === '/api/prewarm-view') return prewarmSpy(url, opts);
-            return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) });
-        });
-
-        const appTick = () => new Promise(resolve => setTimeout(resolve, 0));
-        await appTick();
-
-        document.getElementById('download-current-view').click();
-        await appTick();
-        document.getElementById('prewarm-confirm-yes').click();
-        await appTick();
-        await appTick();
-
-        const status = document.getElementById('download-current-view-status').textContent;
-        expect(status).toContain('Done');
-        expect(status).toContain('8/10');
-    });
-
     test('falls back to the first provider when initial key is missing', async () => {
         const { mapMock, tileLayers } = await bootstrapApp({
             gpxFiles: [],

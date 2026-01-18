@@ -45,19 +45,3 @@ type BoundsDTO struct {
 	East  float64 `json:"east"`
 	West  float64 `json:"west"`
 }
-
-type PrewarmViewRequest struct {
-	ProviderKey string    `json:"providerKey"`
-	Bounds      BoundsDTO `json:"bounds"`
-	CenterZoom  int       `json:"centerZoom"`
-	ZoomRadius  int       `json:"zoomRadius"`
-}
-
-type PrewarmViewResponse struct {
-	ProviderKey string `json:"providerKey"`
-	ZoomMin     int    `json:"zoomMin"`
-	ZoomMax     int    `json:"zoomMax"`
-	Total       int    `json:"total"`
-	Ok          int    `json:"ok"`
-	Failed      int    `json:"failed"`
-}

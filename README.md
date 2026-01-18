@@ -62,7 +62,6 @@ The backend is written in **Go** (Golang) and uses the standard library (`net/ht
     *   `GET /api/gpx`: Traverses `data/Activities/` and `data/Plans/` and returns a JSON list of available files.
     *   `GET /api/tile-config`: Returns available tile providers + offline mode state.
     *   `GET /api/status`: Returns basic cache statistics (hits/misses/errors).
-    *   `POST /api/prewarm-view`: Prewarms the on-disk tile cache for a viewport/zoom range.
 *   **Tile Proxy + Cache**: `GET /tiles/{provider}/{z}/{x}/{y}.(png|jpg)` downloads and caches map tiles under `cache/tiles/`.
 *   **Service Layer**: Business logic is decoupled into `internal/service/` for better testability and maintainability.
 
@@ -186,6 +185,6 @@ All settings can be set via environment variables prefixed with `GPX_SELF_HOST_`
 #### Offline mode
 
 Run with `-offline` (or set `Offline: true` in JSON/ENV) to block all upstream tile downloads and serve map tiles from the local cache only.
-- Warm the cache while online (browse the areas/zooms you care about, or use the "Download Current View" feature).
+- Warm the cache while online by browsing the areas/zooms you care about.
 - Start the server with `./run.sh -offline`.
 - If a requested tile is missing from the cache, the server returns `404` instead of reaching out to the provider.

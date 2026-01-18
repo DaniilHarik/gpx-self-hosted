@@ -39,7 +39,6 @@ func New(cfg *config.Config) *Server {
 	mux.HandleFunc("/api/gpx", h.ListGPXFiles)
 	mux.HandleFunc("/api/tile-config", h.TileConfig)
 	mux.HandleFunc("/api/status", h.Status)
-	mux.HandleFunc("/api/prewarm-view", h.PrewarmView)
 	mux.HandleFunc("/tiles/", h.TileProxy)
 
 	s := &Server{

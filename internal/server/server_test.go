@@ -1,7 +1,6 @@
 package server
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -224,112 +223,6 @@ func TestTileProxyHandler(t *testing.T) {
 
 	if rr2.Body.String() != "fake tile data" {
 		t.Errorf("Cache HIT: handler returned wrong body: got %v want %v", rr2.Body.String(), "fake tile data")
-	}
-}
-
-func TestPrewarmViewHandler(t *testing.T) {
-	var upstreamCalls int
-	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		upstreamCalls++
-		if r.URL.Path == "/0/0/0.png" {
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte("fake tile data"))
-			return
-		}
-		w.WriteHeader(http.StatusNotFound)
-	}))
-	defer upstream.Close()
-
-	cacheDir := t.TempDir()
-	cfg := &config.Config{
-		ClientTimeout: 1 * time.Second,
-		MaxRetries:    1,
-		CacheDir:      cacheDir,
-		Providers: map[string]config.TileProviderConfig{
-			"test": {
-				Name:        "Test",
-				URLTemplate: upstream.URL + "/{z}/{x}/{y}.png",
-				IsTMS:       false,
-				ZoomRange:   [2]int{0, 0},
-			},
-		},
-	}
-	srv := New(cfg)
-
-	body, _ := json.Marshal(model.PrewarmViewRequest{
-		ProviderKey: "test",
-		Bounds:      model.BoundsDTO{North: 1, South: -1, East: 1, West: -1},
-		CenterZoom:  0,
-		ZoomRadius:  0,
-	})
-	req := httptest.NewRequest("POST", "/api/prewarm-view", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rr := httptest.NewRecorder()
-
-	srv.Handler().ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", rr.Code)
-	}
-
-	var resp model.PrewarmViewResponse
-	if err := json.Unmarshal(rr.Body.Bytes(), &resp); err != nil {
-		t.Fatalf("unexpected json error: %v", err)
-	}
-
-	if resp.Total != 1 || resp.Ok != 1 || resp.Failed != 0 {
-		t.Fatalf("unexpected response counts: %+v", resp)
-	}
-
-	cachePath := filepath.Join(cacheDir, "tiles", "test", "0", "0", "0.png")
-	if _, err := os.Stat(cachePath); err != nil {
-		t.Fatalf("expected tile cached at %s, got error: %v", cachePath, err)
-	}
-	if upstreamCalls != 1 {
-		t.Fatalf("expected upstream to be called once, got %d", upstreamCalls)
-	}
-}
-
-func TestPrewarmViewHandler_OfflineMode(t *testing.T) {
-	var upstreamCalls int
-	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		upstreamCalls++
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer upstream.Close()
-
-	cfg := &config.Config{
-		ClientTimeout: 1 * time.Second,
-		MaxRetries:    1,
-		CacheDir:      t.TempDir(),
-		Offline:       true,
-		Providers: map[string]config.TileProviderConfig{
-			"test": {
-				Name:        "Test",
-				URLTemplate: upstream.URL + "/{z}/{x}/{y}.png",
-				IsTMS:       false,
-				ZoomRange:   [2]int{0, 0},
-			},
-		},
-	}
-	srv := New(cfg)
-
-	body, _ := json.Marshal(model.PrewarmViewRequest{
-		ProviderKey: "test",
-		Bounds:      model.BoundsDTO{North: 1, South: -1, East: 1, West: -1},
-		CenterZoom:  0,
-		ZoomRadius:  0,
-	})
-	req := httptest.NewRequest("POST", "/api/prewarm-view", bytes.NewReader(body))
-	rr := httptest.NewRecorder()
-
-	srv.Handler().ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusConflict {
-		t.Fatalf("expected status 409, got %d", rr.Code)
-	}
-	if upstreamCalls != 0 {
-		t.Fatalf("expected upstream not to be called while offline, got %d", upstreamCalls)
 	}
 }
 

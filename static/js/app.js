@@ -30,7 +30,7 @@ async function init() {
     setupMultiTrackToggle();
     setupDrawControl();
 
-    // Map layer initialization (includes prewarm UI setup)
+    // Map layer initialization
     await initMapLayer();
 
     // Event Listeners

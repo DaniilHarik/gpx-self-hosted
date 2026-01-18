@@ -20,9 +20,6 @@ export const state = {
     tileConfigState: null,
     activeTileProviderKey: null,
     providerKeyByLayer: new WeakMap(),
-    prewarmAbortController: null,
-    prewarmInProgress: false,
-    prewarmStatusText: null,
 
     // Leaflet Draw bits
     drawnItems: null,
@@ -47,16 +44,6 @@ export const ui = {
     get trackElevationGain() { return document.getElementById('track-elevation-gain'); },
     get trackElevationLoss() { return document.getElementById('track-elevation-loss'); },
 
-    // Download/Prewarm
-    get downloadBtn() { return document.getElementById('download-current-view'); },
-    get downloadStatus() { return document.getElementById('download-current-view-status'); },
-    get downloadCancel() { return document.getElementById('download-current-view-cancel'); },
-    get progressContainer() { return document.getElementById('prewarm-progress-container'); },
-    get progressBar() { return document.getElementById('prewarm-progress-bar'); },
-    get confirmArea() { return document.getElementById('prewarm-confirm-area'); },
-    get confirmText() { return document.getElementById('prewarm-confirm-text'); },
-    get confirmYes() { return document.getElementById('prewarm-confirm-yes'); },
-    get confirmNo() { return document.getElementById('prewarm-confirm-no'); },
 };
 
 export function resetState() {
@@ -74,10 +61,6 @@ export function resetState() {
     state.tileConfigState = null;
     state.activeTileProviderKey = null;
     state.providerKeyByLayer = new WeakMap();
-    if (state.prewarmAbortController) state.prewarmAbortController.abort();
-    state.prewarmAbortController = null;
-    state.prewarmInProgress = false;
-    state.prewarmStatusText = null;
     state.drawnItems = null;
 }
 

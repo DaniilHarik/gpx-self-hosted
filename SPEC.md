@@ -22,7 +22,6 @@ Updated: 2025-12-21
   - Click a track to load (exclusive select); map auto-zooms to its bounds; info panel fills with stats.
   - **Multi-Track Mode**: Toggle via sidebar header button; active mode adds checkboxes to list items for additive selection; tracks are color-coded (Cycle: Blue → Red → Green → Others) with visual indicators in the list.
   - Switch base layers via the map control (OpenStreetMap, OpenTopoMap, Maa-amet kaart/foto; defaults to Maa-amet kaart). Selection persists in `localStorage`.
-  - **Offline Tools**: “Download Current View” map control prompts for confirmation, then sends a single backend request to prewarm the tile cache for the current viewport at zoom `current±2` (clamped to provider min/max) with cancel + progress indicator; disabled when server `-offline` is enabled.
   - Draw polylines/markers on the map and export current drawings as a GPX download (button disabled until something is drawn).
 
 ## Functional Requirements
@@ -38,13 +37,9 @@ Updated: 2025-12-21
   - Static assets served from `/` using `static` dir; raw GPX files exposed under `/data/`.
   - Tile config endpoint `GET /api/tile-config` mirrors providers and declares the initial provider key (`Cache-Control: no-store`).
   - Status endpoint `GET /api/status` returns cache hit/miss/error counters since process start for lightweight health checks (`Cache-Control: no-store`).
-- Prewarm endpoint `POST /api/prewarm-view` downloads all tiles covering a `{bounds, providerKey, centerZoom, zoomRadius}` request into the on-disk cache (`Cache-Control: no-store`) and returns `{providerKey, zoomMin, zoomMax, total, ok, failed}`.
   - Map tiles & caching
   - Frontend requests tiles through `/tiles/{provider}/{z}/{x}/{y}.(png|jpg)`; server swaps `{z,x,y}` into the provider template and proxies to upstream.
   - Tile cache stored under `cache/tiles/<provider>/<z>/<x>/<y>.<ext>` where `<ext>` matches the request (today the SPA always uses `.png`).
-  - **Prewarm**: client “Download Current View” sends one `POST /api/prewarm-view`; server enumerates tiles for the requested view/zooms, honors provider TMS, downloads with limited concurrency, and stops early if the client aborts.
-  - **Prewarm**: if the request context is already canceled or cancels mid-enumeration, the server returns `context.Canceled` and stops scheduling new tiles.
-  - Tile downloads and prewarm workers honor request context cancellation (including during retry backoff) to stop quickly on client aborts.
   - Known issue: providers that serve JPEG upstream (e.g. Maa-amet Foto) can be cached/served under a `.png` request path, which can lead to incorrect `Content-Type` headers when serving from disk.
   - Offline mode (`-offline`): cache-only serving; cache misses return 404 without calling upstream or writing to disk. Assumes cache warmed or pre-seeded.
   - Upstream 404 yields 404 without caching; repeated requests to cached tiles must not call upstream.

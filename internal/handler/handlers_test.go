@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -23,17 +22,12 @@ func (m *mockGPXService) ListFiles(ctx context.Context) ([]model.GPXFile, error)
 }
 
 type mockTilesService struct {
-	getTileFunc     func(ctx context.Context, providerName, z, x, yPng string) (string, error)
-	prewarmViewFunc func(ctx context.Context, req model.PrewarmViewRequest) (model.PrewarmViewResponse, error)
-	getStatsFunc    func() model.StatusResponse
+	getTileFunc  func(ctx context.Context, providerName, z, x, yPng string) (string, error)
+	getStatsFunc func() model.StatusResponse
 }
 
 func (m *mockTilesService) GetTile(ctx context.Context, providerName, z, x, yPng string) (string, error) {
 	return m.getTileFunc(ctx, providerName, z, x, yPng)
-}
-
-func (m *mockTilesService) PrewarmView(ctx context.Context, req model.PrewarmViewRequest) (model.PrewarmViewResponse, error) {
-	return m.prewarmViewFunc(ctx, req)
 }
 
 func (m *mockTilesService) GetStats() model.StatusResponse {
@@ -244,10 +238,6 @@ type customError struct{ text string }
 
 func (e *customError) Error() string { return e.text }
 
-func TestPrewarmViewHandler(t *testing.T) {
-	// ... (rest of TestPrewarmViewHandler remains the same)
-}
-
 type errorResponseWriter struct {
 	httptest.ResponseRecorder
 }
@@ -283,9 +273,6 @@ func TestHandlers_JSONError(t *testing.T) {
 		getStatsFunc: func() model.StatusResponse {
 			return model.StatusResponse{}
 		},
-		prewarmViewFunc: func(ctx context.Context, req model.PrewarmViewRequest) (model.PrewarmViewResponse, error) {
-			return model.PrewarmViewResponse{}, nil
-		},
 	}
 	h := New(&config.Config{}, mockGPX, mockTiles)
 
@@ -307,9 +294,4 @@ func TestHandlers_JSONError(t *testing.T) {
 		h.Status(rw, httptest.NewRequest("GET", "/", nil))
 	})
 
-	t.Run("PrewarmView_JSONError", func(t *testing.T) {
-		rw := &errorResponseWriter{*httptest.NewRecorder()}
-		body, _ := json.Marshal(model.PrewarmViewRequest{ProviderKey: "test"})
-		h.PrewarmView(rw, httptest.NewRequest("POST", "/", bytes.NewReader(body)))
-	})
 }

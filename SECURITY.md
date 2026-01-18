@@ -10,7 +10,7 @@ Updated: 2025-12-26
 ## Summary of Risks
 
 - **Tile proxy/cache**: Unvalidated path segments allow path traversal, and concurrent requests for the same tile can lead to race conditions or file corruption.
-- **Resource limits**: No global controls for tile download concurrency, prewarm job scaling, or disk usage.
+- **Resource limits**: No global controls for tile download concurrency or disk usage.
 - **Data directory exposure**: `/data/` is served via `http.FileServer`, which can expose directory listings and follow symlinks out of the data directory.
 - **Third-party assets**: Frontend scripts/styles use SRI, but are still fetched from CDNs at runtime.
 
@@ -25,5 +25,4 @@ If private reporting is not available, open a standard issue with minimal reprod
 - **[High] Concurrency control for tile downloads**: Multiple requests for the same tile can trigger redundant fetches and potential race conditions. 
 - **[High] Disk usage & safety**: Implementing size limits for tile downloads and atomic writes (temp file + rename) will improve robustness.
 - **[Medium] Cache Quota**: Adding a maximum cache size and eviction policy (LRU) to prevent disk exhaustion.
-- **[Medium] Prewarm Concurrency**: Limiting the number of concurrent prewarm workers across the entire application.
 - **[Medium] Data directory hardening**: Ensuring the `/data/` handler only serves `.gpx` files and does not follow symlinks out of the directory.
