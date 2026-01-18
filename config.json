@@ -1,0 +1,39 @@
+{
+  "Port": ":8080",
+  "StaticDir": "./static",
+  "DataDir": "./data",
+  "CacheDir": "./cache",
+  "ClientTimeout": 10000000000,
+  "MaxRetries": 3,
+  "Offline": false,
+  "Providers": {
+    "openstreetmap": {
+      "Name": "OpenStreetMap",
+      "URLTemplate": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+      "IsTMS": false,
+      "Attribution": "© OpenStreetMap contributors",
+      "ZoomRange": [0, 19]
+    },
+    "opentopomap": {
+      "Name": "OpenTopoMap",
+      "URLTemplate": "https://a.tile.opentopomap.org/{z}/{x}/{y}.png",
+      "IsTMS": false,
+      "Attribution": "Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap (CC-BY-SA)",
+      "ZoomRange": [0, 15]
+    },
+    "maaamet-foto": {
+      "Name": "Maa-amet Foto",
+      "URLTemplate": "https://tiles.maaamet.ee/tm/tms/1.0.0/foto@GMC/{z}/{x}/{y}.jpg&ASUTUS=MAAAMET&KESKKOND=LIVE&IS=TMSNAIDE",
+      "IsTMS": true,
+      "Attribution": "Maa-amet",
+      "ZoomRange": [0, 19]
+    },
+    "maaamet-kaart": {
+      "Name": "Maa-amet Kaart",
+      "URLTemplate": "https://tiles.maaamet.ee/tm/tms/1.0.0/kaart@GMC/{z}/{x}/{y}.png&ASUTUS=MAAAMET&KESKKOND=LIVE&IS=TMSNAIDE",
+      "IsTMS": true,
+      "Attribution": "Maa-amet",
+      "ZoomRange": [0, 19]
+    }
+  }
+}
