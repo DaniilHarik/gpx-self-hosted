@@ -174,7 +174,7 @@ func defaultProviders() map[string]TileProviderConfig {
 		},
 		"opentopomap": {
 			Name:        "OpenTopoMap",
-			URLTemplate: "https://a.tile.opentopomap.org/{z}/{x}/{y}.png",
+			URLTemplate: "https://c.tile.opentopomap.org/{z}/{x}/{y}.png",
 			IsTMS:       false,
 			Attribution: "Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap (CC-BY-SA)",
 			ZoomRange:   [2]int{0, 15},
