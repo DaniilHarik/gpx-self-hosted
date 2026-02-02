@@ -1,6 +1,6 @@
 # Self-Hosted GPX Viewer — Product Spec
 
-Updated: 2025-12-21
+Updated: 2026-01-30
 
 ## Product Overview
 - Purpose: offline-friendly GPX archive you can run locally to browse, filter, and inspect personal tracks on a map without uploading them to a third party.
@@ -60,7 +60,7 @@ Updated: 2025-12-21
   - Leaflet Draw toolbar available with polyline + marker tools; drawn items kept in a feature group.
   - Export button in the draw toolbar exports current drawings to a GPX download (trk segments for polylines, waypoints for markers); button disabled with correct aria state when empty.
 - Error handling & observability
-  - `/tiles` only validates a minimal path shape (segment count) and provider; bad requests for malformed paths → 400; unknown provider → 404; upstream failure after retries → 502.
+  - `/tiles` validates provider token plus numeric `z/x/y` and `.png|.jpg` extension; malformed or traversal-like paths → 400; unknown provider → 404; upstream failure after retries → 502.
   - `/api/gpx` errors return 500 with message.
   - Server logs cache hits/misses and upstream attempts.
 

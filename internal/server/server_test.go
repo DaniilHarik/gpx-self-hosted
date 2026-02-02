@@ -389,13 +389,22 @@ func TestTileProxyHandler_InvalidRequest(t *testing.T) {
 	}
 	srv := New(cfg)
 
-	req := httptest.NewRequest("GET", "/tiles/invalid", nil)
-	rr := httptest.NewRecorder()
+	paths := []string{
+		"/tiles/invalid",
+		"/tiles/test/1/2/3.gif",
+		"/tiles/test/1/../3.png",
+		"/tiles/test/1/2/3.png/extra",
+	}
 
-	srv.Handler().ServeHTTP(rr, req)
+	for _, p := range paths {
+		req := httptest.NewRequest("GET", p, nil)
+		rr := httptest.NewRecorder()
 
-	if status := rr.Code; status != http.StatusBadRequest {
-		t.Errorf("ExpectedStatusBadRequest, got %v", status)
+		srv.Handler().ServeHTTP(rr, req)
+
+		if status := rr.Code; status != http.StatusBadRequest {
+			t.Errorf("ExpectedStatusBadRequest for %s, got %v", p, status)
+		}
 	}
 }
 

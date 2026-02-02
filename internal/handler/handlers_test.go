@@ -96,6 +96,24 @@ func TestTileProxyHandler(t *testing.T) {
 			mockError:      nil,
 			expectedStatus: http.StatusBadRequest,
 		},
+		{
+			name:           "Invalid Tile Extension",
+			path:           "/tiles/test/1/2/3.gif",
+			mockError:      nil,
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:           "Path Traversal Segment",
+			path:           "/tiles/test/1/../3.png",
+			mockError:      nil,
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:           "Extra Path Segments",
+			path:           "/tiles/test/1/2/3.png/extra",
+			mockError:      nil,
+			expectedStatus: http.StatusBadRequest,
+		},
 	}
 
 	for _, tt := range tests {

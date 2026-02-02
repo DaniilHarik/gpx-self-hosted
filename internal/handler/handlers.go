@@ -3,7 +3,9 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"path"
 	"strings"
 
 	"gpx-self-host/internal/config"
@@ -83,14 +85,11 @@ func (h *Handlers) Status(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) TileProxy(w http.ResponseWriter, r *http.Request) {
-	parts := strings.Split(r.URL.Path, "/")
-	if len(parts) < 6 {
+	providerName, z, x, yPng, err := parseTileRequest(r.URL.Path)
+	if err != nil {
 		http.Error(w, "Invalid tile request", http.StatusBadRequest)
 		return
 	}
-
-	providerName := parts[2]
-	z, x, yPng := parts[3], parts[4], parts[5]
 
 	path, err := h.tileService.GetTile(r.Context(), providerName, z, x, yPng)
 	if err != nil {
@@ -107,4 +106,60 @@ func (h *Handlers) TileProxy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.ServeFile(w, r, path)
+}
+
+func parseTileRequest(urlPath string) (string, string, string, string, error) {
+	parts := strings.Split(urlPath, "/")
+	if len(parts) != 6 || parts[0] != "" || parts[1] != "tiles" {
+		return "", "", "", "", fmt.Errorf("invalid tile path")
+	}
+
+	providerName := parts[2]
+	z := parts[3]
+	x := parts[4]
+	yPng := parts[5]
+
+	if !isSafeProvider(providerName) || !isDigits(z) || !isDigits(x) || !isValidTileFilename(yPng) {
+		return "", "", "", "", fmt.Errorf("invalid tile parameters")
+	}
+
+	return providerName, z, x, yPng, nil
+}
+
+func isSafeProvider(name string) bool {
+	if name == "" || name == "." || name == ".." {
+		return false
+	}
+	for _, r := range name {
+		switch {
+		case r >= 'a' && r <= 'z':
+		case r >= 'A' && r <= 'Z':
+		case r >= '0' && r <= '9':
+		case r == '-' || r == '_' || r == '.':
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+func isDigits(value string) bool {
+	if value == "" {
+		return false
+	}
+	for _, r := range value {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+func isValidTileFilename(name string) bool {
+	ext := strings.ToLower(path.Ext(name))
+	if ext != ".png" && ext != ".jpg" {
+		return false
+	}
+	base := strings.TrimSuffix(name, ext)
+	return isDigits(base)
 }
