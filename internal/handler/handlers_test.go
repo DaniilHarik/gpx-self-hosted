@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -11,6 +12,7 @@ import (
 
 	"gpx-self-host/internal/config"
 	"gpx-self-host/internal/model"
+	"gpx-self-host/internal/service/tiles"
 )
 
 type mockGPXService struct {
@@ -149,20 +151,20 @@ func TestTileProxyHandler(t *testing.T) {
 
 func TestTileProxyHandler_SpecificErrors(t *testing.T) {
 	errorTests := []struct {
-		errText        string
+		err            error
 		expectedStatus int
 	}{
-		{"unknown provider", http.StatusNotFound},
-		{"offline mode", http.StatusNotFound},
-		{"upstream status 404", http.StatusNotFound},
-		{"random error", http.StatusBadGateway},
+		{tiles.ErrUnknownProvider, http.StatusNotFound},
+		{tiles.ErrOfflineMode, http.StatusNotFound},
+		{&tiles.UpstreamStatusError{StatusCode: http.StatusNotFound}, http.StatusNotFound},
+		{errors.New("random error"), http.StatusBadGateway},
 	}
 
 	for _, tt := range errorTests {
-		t.Run(tt.errText, func(t *testing.T) {
+		t.Run(tt.err.Error(), func(t *testing.T) {
 			h := New(nil, nil, &mockTilesService{
 				getTileFunc: func(ctx context.Context, providerName, z, x, yPng string) (string, error) {
-					return "", &customError{tt.errText}
+					return "", tt.err
 				},
 			})
 
@@ -171,7 +173,7 @@ func TestTileProxyHandler_SpecificErrors(t *testing.T) {
 			h.TileProxy(rr, req)
 
 			if rr.Code != tt.expectedStatus {
-				t.Errorf("for error %q expected %d, got %d", tt.errText, tt.expectedStatus, rr.Code)
+				t.Errorf("for error %q expected %d, got %d", tt.err.Error(), tt.expectedStatus, rr.Code)
 			}
 		})
 	}

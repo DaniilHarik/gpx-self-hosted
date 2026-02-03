@@ -175,8 +175,8 @@ func TestGetTile_Offline(t *testing.T) {
 	service := NewService(cfg)
 
 	_, err := service.GetTile(context.Background(), "test", "1", "2", "3.png")
-	if err == nil || err.Error() != "offline mode" {
-		t.Errorf("expected 'offline mode' error, got %v", err)
+	if err == nil || !errors.Is(err, ErrOfflineMode) {
+		t.Errorf("expected offline mode error, got %v", err)
 	}
 }
 
@@ -199,7 +199,8 @@ func TestGetTile_Upstream404(t *testing.T) {
 	service := NewService(cfg)
 
 	_, err := service.GetTile(context.Background(), "test", "1", "2", "3.png")
-	if err == nil || !strings.Contains(err.Error(), "upstream status 404") {
+	var upstreamErr *UpstreamStatusError
+	if err == nil || !errors.As(err, &upstreamErr) || upstreamErr.StatusCode != http.StatusNotFound {
 		t.Errorf("expected upstream status 404 error, got %v", err)
 	}
 }

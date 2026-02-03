@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"path"
@@ -10,6 +11,7 @@ import (
 
 	"gpx-self-host/internal/config"
 	"gpx-self-host/internal/model"
+	"gpx-self-host/internal/service/tiles"
 )
 
 type GPXService interface {
@@ -93,14 +95,17 @@ func (h *Handlers) TileProxy(w http.ResponseWriter, r *http.Request) {
 
 	path, err := h.tileService.GetTile(r.Context(), providerName, z, x, yPng)
 	if err != nil {
-		if err.Error() == "unknown provider" {
+		if errors.Is(err, tiles.ErrUnknownProvider) {
 			http.Error(w, "Unknown provider", http.StatusNotFound)
-		} else if err.Error() == "offline mode" {
+		} else if errors.Is(err, tiles.ErrOfflineMode) {
 			http.Error(w, "Tile not available offline", http.StatusNotFound)
-		} else if strings.HasPrefix(err.Error(), "upstream status") {
-			http.Error(w, "Tile not found on upstream", http.StatusNotFound)
 		} else {
-			http.Error(w, "Failed to fetch tile", http.StatusBadGateway)
+			var upstreamErr *tiles.UpstreamStatusError
+			if errors.As(err, &upstreamErr) {
+				http.Error(w, "Tile not found on upstream", http.StatusNotFound)
+			} else {
+				http.Error(w, "Failed to fetch tile", http.StatusBadGateway)
+			}
 		}
 		return
 	}

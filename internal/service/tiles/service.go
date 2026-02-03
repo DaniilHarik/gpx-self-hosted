@@ -2,6 +2,7 @@ package tiles
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -15,6 +16,19 @@ import (
 	"gpx-self-host/internal/config"
 	"gpx-self-host/internal/model"
 )
+
+var (
+	ErrUnknownProvider = errors.New("unknown provider")
+	ErrOfflineMode     = errors.New("offline mode")
+)
+
+type UpstreamStatusError struct {
+	StatusCode int
+}
+
+func (e *UpstreamStatusError) Error() string {
+	return fmt.Sprintf("upstream status %d", e.StatusCode)
+}
 
 type Service struct {
 	cfg         *config.Config
@@ -52,7 +66,7 @@ func (s *Service) GetTile(ctx context.Context, providerName, z, x, yPng string) 
 	provider, ok := s.cfg.Providers[providerName]
 	if !ok {
 		atomic.AddUint64(&s.cacheErrors, 1)
-		return "", fmt.Errorf("unknown provider")
+		return "", fmt.Errorf("%w: %s", ErrUnknownProvider, providerName)
 	}
 
 	cacheDir := filepath.Join(s.cfg.CacheDir, "tiles", providerName, z, x)
@@ -68,7 +82,7 @@ func (s *Service) GetTile(ctx context.Context, providerName, z, x, yPng string) 
 	if s.cfg.Offline {
 		slog.Warn("Offline mode enabled; skipping download", "path", cachePath)
 		atomic.AddUint64(&s.cacheErrors, 1)
-		return "", fmt.Errorf("offline mode")
+		return "", ErrOfflineMode
 	}
 
 	yOnly := strings.TrimSuffix(yPng, filepath.Ext(yPng))
@@ -138,7 +152,7 @@ func (s *Service) GetTile(ctx context.Context, providerName, z, x, yPng string) 
 	if resp.StatusCode != http.StatusOK {
 		slog.Error("Upstream returned non-OK status", "status", resp.StatusCode)
 		atomic.AddUint64(&s.cacheErrors, 1)
-		return "", fmt.Errorf("upstream status %d", resp.StatusCode)
+		return "", &UpstreamStatusError{StatusCode: resp.StatusCode}
 	}
 
 	if ctxErr := ctx.Err(); ctxErr != nil {
