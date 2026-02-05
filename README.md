@@ -20,7 +20,7 @@ This is a personal project with specialized requirements.
 * **Targeted Use**: Initially developed with specific features for Estonia (e.g., Maa-amet and OpenTopoMap layers), but extensible to any region.
 
 ### Prerequisites
-* [Go](https://go.dev/dl/) installed.
+* [Go](https://go.dev/dl/) 1.25+ installed.
 * [Node.js](https://nodejs.org/) installed (for frontend tests only, optional).
 
 ## Quick start
