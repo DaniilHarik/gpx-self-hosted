@@ -62,6 +62,7 @@ async function bootstrapApp(options = {}) {
                     <button id="theme-toggle" class="icon-btn" title="Toggle theme" aria-label="Toggle theme">
                         <i class="fas fa-moon"></i>
                     </button>
+                    <button id="toggle-start-end-markers" class="icon-btn active" aria-pressed="true"></button>
                     <button id="toggle-multi-track" class="icon-btn"></button>
                 </div>
             </div>
@@ -743,6 +744,38 @@ describe('App Logic', () => {
             expect(markerOpts.wptIconUrls[''].startsWith('data:image/svg+xml')).toBe(true);
             expect(markerOpts.wptIconTypeUrls[''].startsWith('data:image/svg+xml')).toBe(true);
             expect(markerOpts.shadowUrl.startsWith('data:image/svg+xml')).toBe(true);
+        });
+
+        test('can hide start/end markers via toggle', () => {
+            const markersToggle = document.getElementById('toggle-start-end-markers');
+            markersToggle.click();
+
+            const list = document.getElementById('file-list');
+            const item = list.querySelector('li:not(.year-separator)');
+            item.click();
+
+            const firstCallOpts = global.L.GPX.mock.calls[0][1];
+            const markerOpts = firstCallOpts.marker_options;
+
+            expect(markersToggle.classList.contains('active')).toBe(false);
+            expect(markersToggle.getAttribute('aria-pressed')).toBe('false');
+            expect(markerOpts.startIconUrl).toBe(markerOpts.shadowUrl);
+            expect(markerOpts.endIconUrl).toBe(markerOpts.shadowUrl);
+            expect(markerOpts.wptIconUrls[''].startsWith('data:image/svg+xml')).toBe(true);
+        });
+
+        test('rebuilds loaded tracks when marker visibility changes', () => {
+            const list = document.getElementById('file-list');
+            const item = list.querySelector('li:not(.year-separator)');
+            item.click();
+
+            expect(global.L.GPX).toHaveBeenCalledTimes(1);
+
+            const markersToggle = document.getElementById('toggle-start-end-markers');
+            markersToggle.click();
+
+            expect(mapMock.removeLayer).toHaveBeenCalled();
+            expect(global.L.GPX).toHaveBeenCalledTimes(2);
         });
 
         test('exclusive click in multi-mode removes others', () => {

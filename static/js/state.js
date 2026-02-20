@@ -10,6 +10,7 @@ export const state = {
     loadedTracks: new Map(),
     focusedTrackPath: null,
     isMultiTrackMode: false,
+    showStartEndMarkers: true,
     allFiles: [],
     selectedActivities: new Set(),
     activityKeyMap: new Map(),
@@ -34,6 +35,8 @@ export const ui = {
     get infoPanel() { return document.getElementById('info-panel'); },
     get fileCount() { return document.getElementById('file-count'); },
     get themeToggle() { return document.getElementById('theme-toggle'); },
+    get multiTrackToggle() { return document.getElementById('toggle-multi-track'); },
+    get startEndMarkersToggle() { return document.getElementById('toggle-start-end-markers'); },
 
     // Stats panel
     get trackName() { return document.getElementById('track-name'); },
@@ -51,6 +54,7 @@ export function resetState() {
     state.loadedTracks.clear();
     state.focusedTrackPath = null;
     state.isMultiTrackMode = false;
+    state.showStartEndMarkers = true;
     state.allFiles = [];
     state.selectedActivities.clear();
     state.activityKeyMap.clear();

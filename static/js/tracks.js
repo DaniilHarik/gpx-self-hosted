@@ -9,9 +9,10 @@ const START_MARKER_ICON_URL = utils.svgToDataUri(utils.buildPinSvg('#16a34a', '#
 const END_MARKER_ICON_URL = utils.svgToDataUri(utils.buildPinSvg('#dc2626', '#991b1b', '#fef2f2'));
 const DEFAULT_MARKER_ICON_URL = utils.svgToDataUri(utils.buildPinSvg('#2563eb', '#1e40af', '#f8fafc'));
 const TRANSPARENT_SHADOW_URL = utils.svgToDataUri('<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>');
+const HIDDEN_MARKER_ICON_URL = TRANSPARENT_SHADOW_URL;
 
 export function setupMultiTrackToggle() {
-    const toggleMultiTrackBtn = document.getElementById('toggle-multi-track');
+    const toggleMultiTrackBtn = ui.multiTrackToggle;
     if (toggleMultiTrackBtn) {
         toggleMultiTrackBtn.addEventListener('click', () => {
             state.isMultiTrackMode = !state.isMultiTrackMode;
@@ -20,6 +21,19 @@ export function setupMultiTrackToggle() {
             applyFilters();
         });
     }
+}
+
+export function setupStartEndMarkerToggle() {
+    const toggleBtn = ui.startEndMarkersToggle;
+    if (!toggleBtn) return;
+
+    updateStartEndMarkerToggleUi(toggleBtn);
+
+    toggleBtn.addEventListener('click', () => {
+        state.showStartEndMarkers = !state.showStartEndMarkers;
+        updateStartEndMarkerToggleUi(toggleBtn);
+        refreshLoadedTrackLayers();
+    });
 }
 
 export function enforceSingleTrack() {
@@ -65,33 +79,7 @@ export function addTrack(path, name) {
     ui.infoPanel.classList.add('hidden');
     state.loadedTracks.set(path, { layer: null, name, color });
 
-    const layer = new L.GPX(path, {
-        async: true,
-        marker_options: {
-            startIconUrl: START_MARKER_ICON_URL,
-            endIconUrl: END_MARKER_ICON_URL,
-            shadowUrl: TRANSPARENT_SHADOW_URL,
-            wptIconUrls: { '': DEFAULT_MARKER_ICON_URL },
-            wptIconTypeUrls: { '': DEFAULT_MARKER_ICON_URL },
-            iconSize: constants.MARKER_ICON_SIZE,
-            iconAnchor: constants.MARKER_ICON_ANCHOR,
-            shadowSize: [1, 1],
-            shadowAnchor: [0, 0]
-        },
-        polyline_options: {
-            color: color,
-            opacity: 0.8,
-            weight: 3,
-            lineCap: 'round'
-        }
-    }).on('loaded', function (e) {
-        state.map.fitBounds(e.target.getBounds());
-        if (state.focusedTrackPath === path || !state.focusedTrackPath) {
-            state.focusedTrackPath = path;
-            updateInfoPanel(e.target, name);
-            updateListSelectionState();
-        }
-    }).addTo(state.map);
+    const layer = createTrackLayer(path, name, color);
 
     state.loadedTracks.get(path).layer = layer;
 }
@@ -166,4 +154,72 @@ export function updateInfoPanel(gpx, name) {
     ui.trackElevationLoss.textContent = `-${Math.round(loss)} m`;
 
     ui.infoPanel.classList.remove('hidden');
+}
+
+function updateStartEndMarkerToggleUi(toggleBtn) {
+    toggleBtn.classList.toggle('active', state.showStartEndMarkers);
+    toggleBtn.setAttribute('aria-pressed', state.showStartEndMarkers ? 'true' : 'false');
+    const title = state.showStartEndMarkers ? 'Hide start/end markers' : 'Show start/end markers';
+    toggleBtn.title = title;
+    toggleBtn.setAttribute('aria-label', title);
+}
+
+function createTrackLayer(path, name, color, { fitOnLoad = true } = {}) {
+    return new L.GPX(path, {
+        async: true,
+        marker_options: getMarkerOptions(),
+        polyline_options: {
+            color: color,
+            opacity: 0.8,
+            weight: 3,
+            lineCap: 'round'
+        }
+    }).on('loaded', function (e) {
+        if (fitOnLoad) {
+            state.map.fitBounds(e.target.getBounds());
+        }
+        if (state.focusedTrackPath === path || !state.focusedTrackPath) {
+            state.focusedTrackPath = path;
+            updateInfoPanel(e.target, name);
+            updateListSelectionState();
+        }
+    }).addTo(state.map);
+}
+
+function getMarkerOptions() {
+    return {
+        startIconUrl: state.showStartEndMarkers ? START_MARKER_ICON_URL : HIDDEN_MARKER_ICON_URL,
+        endIconUrl: state.showStartEndMarkers ? END_MARKER_ICON_URL : HIDDEN_MARKER_ICON_URL,
+        shadowUrl: TRANSPARENT_SHADOW_URL,
+        wptIconUrls: { '': DEFAULT_MARKER_ICON_URL },
+        wptIconTypeUrls: { '': DEFAULT_MARKER_ICON_URL },
+        iconSize: constants.MARKER_ICON_SIZE,
+        iconAnchor: constants.MARKER_ICON_ANCHOR,
+        shadowSize: [1, 1],
+        shadowAnchor: [0, 0]
+    };
+}
+
+function refreshLoadedTrackLayers() {
+    if (state.loadedTracks.size === 0) return;
+
+    const tracks = Array.from(state.loadedTracks.entries()).map(([path, track]) => ({
+        path,
+        name: track.name,
+        color: track.color,
+        layer: track.layer
+    }));
+
+    tracks.forEach(track => {
+        state.map.removeLayer(track.layer);
+    });
+
+    state.loadedTracks.clear();
+
+    tracks.forEach(track => {
+        const layer = createTrackLayer(track.path, track.name, track.color, { fitOnLoad: false });
+        state.loadedTracks.set(track.path, { layer, name: track.name, color: track.color });
+    });
+
+    updateListSelectionState();
 }

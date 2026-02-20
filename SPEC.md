@@ -21,6 +21,7 @@ Updated: 2026-01-30
   - **Theme**: Explicit Light/Dark toggle in the sidebar header; selection persists in `localStorage` and overrides system preference.
   - Click a track to load (exclusive select); map auto-zooms to its bounds; info panel fills with stats.
   - **Multi-Track Mode**: Toggle via sidebar header button; active mode adds checkboxes to list items for additive selection; tracks are color-coded (Cycle: Blue → Red → Green → Others) with visual indicators in the list.
+  - **Start/End Marker Toggle**: Sidebar header includes a control to show/hide start and end markers across loaded tracks to reduce clutter in dense multi-track views.
   - Switch base layers via the map control (OpenStreetMap, OpenTopoMap, Maa-amet kaart/foto; defaults to Maa-amet kaart). Selection persists in `localStorage`.
   - Draw polylines/markers on the map and export current drawings as a GPX download (button disabled until something is drawn).
 
@@ -46,6 +47,7 @@ Updated: 2026-01-30
   - Cache hit/miss/error counters are updated on each `/tiles` request; current cache size is logged on startup.
 - Track visualization & stats
   - Uses Leaflet + leaflet-gpx; GPX layer fitted to bounds on load.
+  - Start/end markers can be hidden via a UI toggle; waypoint markers remain visible.
   - Stats shown: distance (km), duration (prefers moving time), date (start timestamp localised), moving speed (km/h), elevation gain/loss (smoothed to ignore micro-noise).
   - Info panel hidden until a track is loaded; updates per selection.
 - Filtering & list rendering

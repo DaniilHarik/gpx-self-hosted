@@ -5,7 +5,7 @@ import { state, ui, resetState, constants } from './state.js';
 import { initMap, setupThemeToggle, normalizeTheme, getCurrentTheme, setTheme } from './map.js';
 import { initMapLayer } from './tiles.js';
 import { fetchFiles, setView, applyFilters, renderFileList } from './files.js';
-import { setupMultiTrackToggle, focusTrack, toggleTrackVisibility, addTrack, removeTrack, updateInfoPanel } from './tracks.js';
+import { setupMultiTrackToggle, setupStartEndMarkerToggle, focusTrack, toggleTrackVisibility, addTrack, removeTrack, updateInfoPanel } from './tracks.js';
 import { setupDrawControl, updateExportButtonState, exportGPX } from './draw.js';
 import * as utils from './utils.js';
 
@@ -28,6 +28,7 @@ async function init() {
     initMap();
     setupThemeToggle();
     setupMultiTrackToggle();
+    setupStartEndMarkerToggle();
     setupDrawControl();
 
     // Map layer initialization
