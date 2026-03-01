@@ -32,12 +32,16 @@ async function bootstrapApp(options = {}) {
     window.__GPX_TEST__ = true;
     const realAddEventListener = HTMLElement.prototype.addEventListener;
     let exportClickHandler = null;
+    let exportImageClickHandler = null;
     let addEventSpy = null;
 
     if (captureExportHandler) {
         addEventSpy = jest.spyOn(HTMLElement.prototype, 'addEventListener').mockImplementation(function (type, listener, options) {
             if (this && this.id === 'export-drawn-track' && type === 'click') {
                 exportClickHandler = listener;
+            }
+            if (this && this.id === 'export-map-image-hires' && type === 'click') {
+                exportImageClickHandler = listener;
             }
             return realAddEventListener.call(this, type, listener, options);
         });
@@ -88,6 +92,18 @@ async function bootstrapApp(options = {}) {
         ${includeDrawToolbar ? '<div class="leaflet-draw leaflet-control"><div class="leaflet-draw-toolbar-top"></div></div>' : ''}
     `;
 
+    const mapEl = document.getElementById('map');
+    Object.defineProperty(mapEl, 'clientWidth', { value: 800, configurable: true });
+    Object.defineProperty(mapEl, 'clientHeight', { value: 600, configurable: true });
+    mapEl.getBoundingClientRect = () => ({
+        left: 0,
+        top: 0,
+        right: 800,
+        bottom: 600,
+        width: 800,
+        height: 600
+    });
+
     const mapMock = {
         setView: jest.fn().mockReturnThis(),
         addLayer: jest.fn().mockReturnThis(),
@@ -96,7 +112,7 @@ async function bootstrapApp(options = {}) {
         fitBounds: jest.fn().mockReturnThis(),
         addControl: jest.fn().mockReturnThis(),
         on: jest.fn().mockReturnThis(),
-        getContainer: jest.fn(() => document.getElementById('map')),
+        getContainer: jest.fn(() => mapEl),
         getZoom: jest.fn(() => 7),
         getBounds: jest.fn(() => ({
             getNorthWest: () => ({ lat: 59, lng: 24 }),
@@ -257,7 +273,16 @@ async function bootstrapApp(options = {}) {
     if (addEventSpy) {
         addEventSpy.mockRestore();
     }
-    return { app, featureGroupMock, featureGroupState, mapMock, tileLayers: createdTileLayers, exportClickHandler, gpxMock };
+    return {
+        app,
+        featureGroupMock,
+        featureGroupState,
+        mapMock,
+        tileLayers: createdTileLayers,
+        exportClickHandler,
+        exportImageClickHandler,
+        gpxMock
+    };
 }
 
 describe('Map layer selection', () => {
@@ -1307,14 +1332,20 @@ describe('App edge cases', () => {
         expect(tileLayers[osmIndex].addTo).toHaveBeenCalledWith(mapMock);
     });
 
-    test('adds export button to draw toolbar and wires enabled state', async () => {
-        const { app, featureGroupMock, exportClickHandler } = await bootstrapApp({ includeDrawToolbar: true, captureExportHandler: true });
+    test('adds export buttons to draw toolbar and wires GPX export enabled state', async () => {
+        const { app, featureGroupMock, exportClickHandler, exportImageClickHandler } = await bootstrapApp({
+            includeDrawToolbar: true,
+            captureExportHandler: true
+        });
         const originalCreate = global.URL.createObjectURL;
         const originalRevoke = global.URL.revokeObjectURL;
 
         expect(exportClickHandler).toBeTruthy();
+        expect(exportImageClickHandler).toBeTruthy();
         const exportButton = document.getElementById('export-drawn-track');
+        const exportImageButton = document.getElementById('export-map-image-hires');
         expect(exportButton).toBeTruthy();
+        expect(exportImageButton).toBeTruthy();
         expect(exportButton.classList.contains('is-disabled')).toBe(true);
 
         global.URL.createObjectURL = jest.fn(() => 'blob:url');
@@ -1342,6 +1373,112 @@ describe('App edge cases', () => {
         appendSpy.mockRestore();
         global.URL.createObjectURL = originalCreate;
         global.URL.revokeObjectURL = originalRevoke;
+    });
+
+    test('exportMapImageHighRes exports visible map layers as PNG', async () => {
+        const { app } = await bootstrapApp({ includeDrawToolbar: true });
+        const mapEl = document.getElementById('map');
+
+        const tilePane = document.createElement('div');
+        tilePane.className = 'leaflet-tile-pane';
+        const tile = document.createElement('img');
+        tile.className = 'leaflet-tile';
+        tile.src = 'data:image/png;base64,AAAA';
+        Object.defineProperty(tile, 'complete', { value: true, configurable: true });
+        Object.defineProperty(tile, 'naturalWidth', { value: 256, configurable: true });
+        tile.getBoundingClientRect = () => ({
+            left: 0,
+            top: 0,
+            right: 256,
+            bottom: 256,
+            width: 256,
+            height: 256
+        });
+        tilePane.appendChild(tile);
+        mapEl.appendChild(tilePane);
+
+        const overlayPane = document.createElement('div');
+        overlayPane.className = 'leaflet-overlay-pane';
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('width', '800');
+        svg.setAttribute('height', '600');
+        svg.innerHTML = '<path d="M 0 0 L 100 100" stroke="#ff0000" />';
+        svg.getBoundingClientRect = () => ({
+            left: 0,
+            top: 0,
+            right: 800,
+            bottom: 600,
+            width: 800,
+            height: 600
+        });
+        overlayPane.appendChild(svg);
+        mapEl.appendChild(overlayPane);
+
+        const markerPane = document.createElement('div');
+        markerPane.className = 'leaflet-marker-pane';
+        const marker = document.createElement('img');
+        marker.className = 'leaflet-marker-icon';
+        marker.src = 'data:image/png;base64,AAAA';
+        Object.defineProperty(marker, 'complete', { value: true, configurable: true });
+        Object.defineProperty(marker, 'naturalWidth', { value: 25, configurable: true });
+        marker.getBoundingClientRect = () => ({
+            left: 100,
+            top: 120,
+            right: 125,
+            bottom: 149,
+            width: 25,
+            height: 29
+        });
+        markerPane.appendChild(marker);
+        mapEl.appendChild(markerPane);
+
+        const ctxMock = {
+            save: jest.fn(),
+            scale: jest.fn(),
+            fillRect: jest.fn(),
+            restore: jest.fn(),
+            drawImage: jest.fn(),
+            set fillStyle(value) { this._fillStyle = value; },
+            get fillStyle() { return this._fillStyle; },
+            set globalAlpha(value) { this._globalAlpha = value; },
+            get globalAlpha() { return this._globalAlpha; }
+        };
+        const getContextSpy = jest.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(ctxMock);
+        const originalToBlob = HTMLCanvasElement.prototype.toBlob;
+        HTMLCanvasElement.prototype.toBlob = function (cb) {
+            cb(new Blob(['png'], { type: 'image/png' }));
+        };
+
+        const ImageMock = class {
+            constructor() {
+                this.onload = null;
+                this.onerror = null;
+            }
+            set src(_) {
+                if (typeof this.onload === 'function') this.onload();
+            }
+        };
+        const originalImage = global.Image;
+        global.Image = ImageMock;
+
+        const originalCreate = global.URL.createObjectURL;
+        const originalRevoke = global.URL.revokeObjectURL;
+        global.URL.createObjectURL = jest.fn(() => 'blob:png');
+        global.URL.revokeObjectURL = jest.fn();
+        const clickSpy = jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => { });
+
+        await app.exportMapImageHighRes();
+
+        expect(ctxMock.scale).toHaveBeenCalledWith(2, 2);
+        expect(ctxMock.drawImage).toHaveBeenCalled();
+        expect(global.URL.createObjectURL).toHaveBeenCalledTimes(1);
+
+        clickSpy.mockRestore();
+        global.URL.createObjectURL = originalCreate;
+        global.URL.revokeObjectURL = originalRevoke;
+        global.Image = originalImage;
+        getContextSpy.mockRestore();
+        HTMLCanvasElement.prototype.toBlob = originalToBlob;
     });
 
     describe('Edge cases and Robustness', () => {

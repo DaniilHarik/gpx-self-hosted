@@ -6,7 +6,7 @@ import { initMap, setupThemeToggle, normalizeTheme, getCurrentTheme, setTheme } 
 import { initMapLayer } from './tiles.js';
 import { fetchFiles, setView, applyFilters, renderFileList } from './files.js';
 import { setupMultiTrackToggle, setupStartEndMarkerToggle, focusTrack, toggleTrackVisibility, addTrack, removeTrack, updateInfoPanel } from './tracks.js';
-import { setupDrawControl, updateExportButtonState, exportGPX } from './draw.js';
+import { setupDrawControl, updateExportButtonState, exportGPX, exportMapImageHighRes } from './draw.js';
 import * as utils from './utils.js';
 
 // --- Wrapped Helper for Tests ---
@@ -86,5 +86,6 @@ export {
     focusTrack,
     resetState,
     init,
-    exportGPX
+    exportGPX,
+    exportMapImageHighRes
 };

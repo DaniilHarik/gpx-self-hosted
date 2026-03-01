@@ -102,7 +102,7 @@ gpx-self-host/
 *   **Search & Filter**: Real-time filtering by name; activity chips; year-based grouping.
 *   **Multi-Track Mode**: View multiple tracks simultaneously with distinct colors.
 *   **Marker Visibility Toggle**: Show/hide start and end markers to reduce clutter when many tracks are loaded.
-*   **Drawing & Export**: Draw new routes on the map and download them as GPX.
+*   **Drawing & Export**: Draw new routes on the map and download them as GPX, plus export a high-resolution PNG snapshot of the current map view (tiles + visible overlays).
 
 ## Supported activities
 

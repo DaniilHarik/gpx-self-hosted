@@ -24,6 +24,7 @@ Updated: 2026-01-30
   - **Start/End Marker Toggle**: Sidebar header includes a control to show/hide start and end markers across loaded tracks to reduce clutter in dense multi-track views.
   - Switch base layers via the map control (OpenStreetMap, OpenTopoMap, Maa-amet kaart/foto; defaults to Maa-amet kaart). Selection persists in `localStorage`.
   - Draw polylines/markers on the map and export current drawings as a GPX download (button disabled until something is drawn).
+  - Draw toolbar includes a high-resolution image export that downloads the current map viewport as PNG, including visible tracks, drawn vectors, and markers.
 
 ## Functional Requirements
 - Startup/Config
@@ -61,6 +62,7 @@ Updated: 2026-01-30
 - Drawing & export
   - Leaflet Draw toolbar available with polyline + marker tools; drawn items kept in a feature group.
   - Export button in the draw toolbar exports current drawings to a GPX download (trk segments for polylines, waypoints for markers); button disabled with correct aria state when empty.
+  - Separate toolbar button exports the current map viewport to a high-resolution PNG (2x canvas scale) including rendered tiles and visible overlays.
 - Error handling & observability
   - `/tiles` validates provider token plus numeric `z/x/y` and `.png|.jpg` extension; malformed or traversal-like paths → 400; unknown provider → 404; upstream failure after retries → 502.
   - `/api/gpx` errors return 500 with message.
@@ -105,7 +107,6 @@ See [SECURITY.md](SECURITY.md) for the full hardening roadmap. Key focus areas i
 - **Animated Track Playback**: Visual "replay" of the track on the map with adjustable speed and a progress slider.
 - **Speed/Grade Heatmaps**: Toggleable overlay that colors the track polyline based on instantaneous speed or incline (slope).
 - **Drag-and-Drop Upload**: Overlay that allows users to drop `.gpx` files or folders directly into the browser to "upload" (save) them to the backend `data/` directory.
-- **Static Map Snapshots**: Export a high-resolution PNG/JPEG of the current map view including all active tracks and annotations.
 - **Waypoint Browser**: A dedicated sidebar tab or modal to browse, search, and "teleport" to waypoints within the selected GPX files.
 - **Metric/Imperial Toggle**: User-facing setting to switch all stats (distance, speed, elevation) between Kilometers/Meters and Miles/Feet.
 - **Public/Private Toggle**: For users who might eventually expose the app to a network, a way to mark specific folders/files as "private" (hidden from the index unless authorized).
