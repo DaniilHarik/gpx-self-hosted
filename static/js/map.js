@@ -4,6 +4,143 @@
 import { state, ui, constants } from './state.js';
 import * as utils from './utils.js';
 
+const MAP_OPTIONS = {
+    zoomControl: false,
+    zoomSnap: 0.25,
+    zoomDelta: 0.25,
+    wheelPxPerZoomLevel: 60
+};
+const DEFAULT_MIN_ZOOM = 0;
+const DEFAULT_MAX_ZOOM = 20;
+const ZOOM_SPEED_PRESETS = [
+    { key: 'fast', label: 'Fast', buttonStep: 1.0, wheelPxPerZoomLevel: 60 },
+    { key: 'normal', label: 'Normal', buttonStep: 0.5, wheelPxPerZoomLevel: 90 },
+    { key: 'precise', label: 'Precise', buttonStep: 0.25, wheelPxPerZoomLevel: 120 }
+];
+const DEFAULT_ZOOM_SPEED_INDEX = 0;
+
+function clampZoom(value, min, max) {
+    if (!Number.isFinite(value)) return min;
+    return Math.min(Math.max(value, min), max);
+}
+
+function getZoomBounds() {
+    const minZoom = typeof state.map?.getMinZoom === 'function' ? state.map.getMinZoom() : DEFAULT_MIN_ZOOM;
+    const maxZoom = typeof state.map?.getMaxZoom === 'function' ? state.map.getMaxZoom() : DEFAULT_MAX_ZOOM;
+    const safeMin = Number.isFinite(minZoom) ? minZoom : DEFAULT_MIN_ZOOM;
+    const safeMax = Number.isFinite(maxZoom) ? maxZoom : DEFAULT_MAX_ZOOM;
+    return {
+        min: safeMin,
+        max: Math.max(safeMax, safeMin)
+    };
+}
+
+function stopMapPropagation(element) {
+    ['click', 'dblclick', 'mousedown', 'mouseup', 'wheel', 'touchstart', 'pointerdown'].forEach((eventName) => {
+        element.addEventListener(eventName, (event) => event.stopPropagation());
+    });
+}
+
+function setupZoomSlider() {
+    if (!state.map) return;
+    const mapContainer = state.map.getContainer();
+    if (!mapContainer) return;
+
+    const sliderStep = MAP_OPTIONS.zoomDelta;
+    const control = document.createElement('div');
+    control.className = 'zoom-slider-control';
+    control.setAttribute('role', 'group');
+    control.setAttribute('aria-label', 'Map zoom controls');
+
+    const zoomOutButton = document.createElement('button');
+    zoomOutButton.type = 'button';
+    zoomOutButton.className = 'zoom-slider-btn';
+    zoomOutButton.setAttribute('aria-label', 'Zoom out');
+    zoomOutButton.textContent = '-';
+
+    const slider = document.createElement('input');
+    slider.id = 'map-zoom-slider';
+    slider.className = 'zoom-slider-range';
+    slider.type = 'range';
+    slider.step = String(sliderStep);
+    slider.setAttribute('aria-label', 'Map zoom slider');
+
+    const zoomInButton = document.createElement('button');
+    zoomInButton.type = 'button';
+    zoomInButton.className = 'zoom-slider-btn';
+    zoomInButton.setAttribute('aria-label', 'Zoom in');
+    zoomInButton.textContent = '+';
+
+    const zoomValue = document.createElement('span');
+    zoomValue.className = 'zoom-slider-value';
+    zoomValue.setAttribute('aria-hidden', 'true');
+
+    const speedButton = document.createElement('button');
+    speedButton.type = 'button';
+    speedButton.className = 'zoom-speed-btn';
+    speedButton.setAttribute('aria-label', 'Change zoom speed');
+
+    let currentSpeedIndex = DEFAULT_ZOOM_SPEED_INDEX;
+    const applyZoomSpeed = (nextIndex) => {
+        currentSpeedIndex = ((nextIndex % ZOOM_SPEED_PRESETS.length) + ZOOM_SPEED_PRESETS.length) % ZOOM_SPEED_PRESETS.length;
+        const preset = ZOOM_SPEED_PRESETS[currentSpeedIndex];
+        speedButton.textContent = preset.label;
+        speedButton.title = `Zoom speed: ${preset.label}. Click to change.`;
+        speedButton.setAttribute('aria-label', speedButton.title);
+        if (state.map?.options) {
+            state.map.options.wheelPxPerZoomLevel = preset.wheelPxPerZoomLevel;
+            state.map.options.zoomDelta = preset.buttonStep;
+        }
+    };
+
+    const syncSliderFromMap = () => {
+        const { min, max } = getZoomBounds();
+        const currentZoom = typeof state.map.getZoom === 'function' ? state.map.getZoom() : 0;
+        const boundedZoom = clampZoom(currentZoom, min, max);
+        slider.min = String(min);
+        slider.max = String(max);
+        slider.value = String(boundedZoom);
+        zoomValue.textContent = boundedZoom.toFixed(2);
+    };
+
+    const setMapZoom = (nextZoom) => {
+        const { min, max } = getZoomBounds();
+        const boundedZoom = clampZoom(nextZoom, min, max);
+        state.map.setZoom(boundedZoom);
+    };
+
+    slider.addEventListener('input', () => {
+        setMapZoom(Number(slider.value));
+    });
+
+    zoomOutButton.addEventListener('click', () => {
+        const buttonStep = state.map?.options?.zoomDelta || MAP_OPTIONS.zoomDelta;
+        setMapZoom(state.map.getZoom() - buttonStep);
+    });
+
+    zoomInButton.addEventListener('click', () => {
+        const buttonStep = state.map?.options?.zoomDelta || MAP_OPTIONS.zoomDelta;
+        setMapZoom(state.map.getZoom() + buttonStep);
+    });
+
+    speedButton.addEventListener('click', () => {
+        applyZoomSpeed(currentSpeedIndex + 1);
+    });
+
+    control.appendChild(zoomOutButton);
+    control.appendChild(slider);
+    control.appendChild(zoomInButton);
+    control.appendChild(zoomValue);
+    control.appendChild(speedButton);
+
+    stopMapPropagation(control);
+    mapContainer.appendChild(control);
+    applyZoomSpeed(DEFAULT_ZOOM_SPEED_INDEX);
+    syncSliderFromMap();
+    state.map.on('zoomend', syncSliderFromMap);
+    state.map.on('baselayerchange', syncSliderFromMap);
+}
+
 export function setupLeafletIcons() {
     if (typeof L === 'undefined' || !L.Icon || !L.Icon.Default) return;
 
@@ -24,7 +161,8 @@ export function setupLeafletIcons() {
 
 export function initMap() {
     if (typeof L === 'undefined') return;
-    state.map = L.map('map').setView([58.60, 25.01], 7);
+    state.map = L.map('map', MAP_OPTIONS).setView([58.60, 25.01], 7);
+    setupZoomSlider();
     setupLeafletIcons();
 }
 

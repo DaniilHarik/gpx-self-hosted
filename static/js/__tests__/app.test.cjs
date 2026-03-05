@@ -105,7 +105,9 @@ async function bootstrapApp(options = {}) {
     });
 
     const mapMock = {
+        options: {},
         setView: jest.fn().mockReturnThis(),
+        setZoom: jest.fn().mockReturnThis(),
         addLayer: jest.fn().mockReturnThis(),
         removeLayer: jest.fn().mockReturnThis(),
         removeControl: jest.fn().mockReturnThis(),
@@ -114,6 +116,8 @@ async function bootstrapApp(options = {}) {
         on: jest.fn().mockReturnThis(),
         getContainer: jest.fn(() => mapEl),
         getZoom: jest.fn(() => 7),
+        getMinZoom: jest.fn(() => 0),
+        getMaxZoom: jest.fn(() => 20),
         getBounds: jest.fn(() => ({
             getNorthWest: () => ({ lat: 59, lng: 24 }),
             getSouthEast: () => ({ lat: 58, lng: 25 })
@@ -304,11 +308,13 @@ describe('Map layer selection', () => {
             controlLayers
         });
 
-        const baselayerchangeHandler = mapMock.on.mock.calls.find(([event]) => event === 'baselayerchange')[1];
+        const baselayerchangeHandlers = mapMock.on.mock.calls
+            .filter(([event]) => event === 'baselayerchange')
+            .map(([, handler]) => handler);
         const topoLayer = captureBaseLayers['Topo'];
 
         const setItemSpy = jest.spyOn(Storage.prototype, 'setItem');
-        baselayerchangeHandler({ layer: topoLayer });
+        baselayerchangeHandlers.forEach((handler) => handler({ layer: topoLayer }));
 
         expect(setItemSpy).toHaveBeenCalledWith('gpx-self-host-layer', 'topo');
         setItemSpy.mockRestore();
@@ -494,12 +500,35 @@ describe('App Logic', () => {
 
     describe('Initialization', () => {
         test('initializes map with config', () => {
+            expect(global.L.map).toHaveBeenCalledWith('map', expect.objectContaining({
+                zoomControl: false,
+                zoomSnap: 0.25,
+                zoomDelta: 0.25,
+                wheelPxPerZoomLevel: 60
+            }));
+            expect(mapMock.setView).toHaveBeenCalledWith([58.6, 25.01], 7);
             expect(global.fetch).toHaveBeenCalledWith('/api/tile-config');
             expect(global.L.tileLayer).toHaveBeenCalled();
             // Check if layer control was added
             expect(global.L.control.layers).toHaveBeenCalled();
             // Check if draw control was added
             expect(global.L.Control.Draw).toHaveBeenCalled();
+        });
+
+        test('renders bottom-center zoom slider with current zoom value', () => {
+            const slider = document.getElementById('map-zoom-slider');
+            const control = document.querySelector('#map .zoom-slider-control');
+            const valueLabel = document.querySelector('#map .zoom-slider-value');
+            const speedButton = document.querySelector('#map .zoom-speed-btn');
+
+            expect(control).toBeTruthy();
+            expect(slider).toBeTruthy();
+            expect(slider.step).toBe('0.25');
+            expect(slider.value).toBe('7');
+            expect(valueLabel.textContent).toBe('7.00');
+            expect(speedButton).toBeTruthy();
+            expect(speedButton.textContent).toBe('Fast');
+            expect(mapMock.options.zoomDelta).toBe(1);
         });
 
         test('fetches and lists files', () => {
@@ -515,6 +544,55 @@ describe('App Logic', () => {
     });
 
     describe('Interactions', () => {
+        test('zoom slider updates map zoom and stays synced on zoom events', () => {
+            const slider = document.getElementById('map-zoom-slider');
+            slider.value = '8.25';
+            slider.dispatchEvent(new Event('input', { bubbles: true }));
+            expect(mapMock.setZoom).toHaveBeenCalledWith(8.25);
+
+            mapMock.getZoom.mockReturnValueOnce(9.5);
+            const zoomEndHandler = mapMock.on.mock.calls.find(([event]) => event === 'zoomend')[1];
+            zoomEndHandler();
+
+            expect(slider.value).toBe('9.5');
+            expect(document.querySelector('#map .zoom-slider-value').textContent).toBe('9.50');
+        });
+
+        test('zoom +/- buttons use faster full-step zoom jumps', () => {
+            const zoomOutButton = document.querySelector('#map .zoom-slider-btn[aria-label="Zoom out"]');
+            const zoomInButton = document.querySelector('#map .zoom-slider-btn[aria-label="Zoom in"]');
+
+            zoomOutButton.click();
+            zoomInButton.click();
+
+            expect(mapMock.setZoom).toHaveBeenCalledWith(6);
+            expect(mapMock.setZoom).toHaveBeenCalledWith(8);
+        });
+
+        test('zoom speed toggle cycles click speed and wheel sensitivity', () => {
+            const zoomInButton = document.querySelector('#map .zoom-slider-btn[aria-label="Zoom in"]');
+            const speedButton = document.querySelector('#map .zoom-speed-btn');
+
+            expect(mapMock.options.wheelPxPerZoomLevel).toBe(60);
+            expect(mapMock.options.zoomDelta).toBe(1);
+            zoomInButton.click();
+            expect(mapMock.setZoom).toHaveBeenLastCalledWith(8);
+
+            speedButton.click();
+            expect(speedButton.textContent).toBe('Normal');
+            expect(mapMock.options.wheelPxPerZoomLevel).toBe(90);
+            expect(mapMock.options.zoomDelta).toBe(0.5);
+            zoomInButton.click();
+            expect(mapMock.setZoom).toHaveBeenLastCalledWith(7.5);
+
+            speedButton.click();
+            expect(speedButton.textContent).toBe('Precise');
+            expect(mapMock.options.wheelPxPerZoomLevel).toBe(120);
+            expect(mapMock.options.zoomDelta).toBe(0.25);
+            zoomInButton.click();
+            expect(mapMock.setZoom).toHaveBeenLastCalledWith(7.25);
+        });
+
         test('search filters the file list', () => {
             const input = document.getElementById('filesearch');
             input.value = 'Run';

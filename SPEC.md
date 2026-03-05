@@ -22,6 +22,7 @@ Updated: 2026-01-30
   - Click a track to load (exclusive select); map auto-zooms to its bounds; info panel fills with stats.
   - **Multi-Track Mode**: Toggle via sidebar header button; active mode adds checkboxes to list items for additive selection; tracks are color-coded (Cycle: Blue → Red → Green → Others) with visual indicators in the list.
   - **Start/End Marker Toggle**: Sidebar header includes a control to show/hide start and end markers across loaded tracks to reduce clutter in dense multi-track views.
+  - **Granular Zooming**: A bottom-center zoom slider supports quarter-step increments (`0.25`), while +/- controls, map click-zoom step, and wheel zoom speed can be changed via a click-to-cycle speed button (`Fast`, `Normal`, `Precise`); all stay synchronized.
   - Switch base layers via the map control (OpenStreetMap, OpenTopoMap, Maa-amet kaart/foto; defaults to Maa-amet kaart). Selection persists in `localStorage`.
   - Draw polylines/markers on the map and export current drawings as a GPX download (button disabled until something is drawn).
   - Draw toolbar includes a high-resolution image export that downloads the current map viewport as PNG, including visible tracks, drawn vectors, and markers.

@@ -579,3 +579,76 @@ body {
 .leaflet-bar a:hover {
     background-color: var(--leaflet-control-bg-hover);
 }
+
+.zoom-slider-control {
+    position: absolute;
+    left: 50%;
+    bottom: 20px;
+    transform: translateX(-50%);
+    z-index: 800;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 1px solid var(--leaflet-control-border);
+    border-radius: 999px;
+    background-color: var(--leaflet-control-bg);
+    color: var(--leaflet-control-text);
+    box-shadow: 0 6px 18px var(--shadow);
+}
+
+.zoom-slider-range {
+    width: min(40vw, 240px);
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+.zoom-slider-btn {
+    width: 24px;
+    height: 24px;
+    border: 1px solid var(--leaflet-control-border);
+    border-radius: 50%;
+    background-color: var(--leaflet-control-bg);
+    color: var(--leaflet-control-text);
+    line-height: 1;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.zoom-slider-btn:hover {
+    background-color: var(--leaflet-control-bg-hover);
+}
+
+.zoom-slider-value {
+    min-width: 2.8rem;
+    text-align: right;
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.zoom-speed-btn {
+    padding: 3px 8px;
+    border: 1px solid var(--leaflet-control-border);
+    border-radius: 999px;
+    background-color: var(--leaflet-control-bg);
+    color: var(--leaflet-control-text);
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.zoom-speed-btn:hover {
+    background-color: var(--leaflet-control-bg-hover);
+}
+
+@media (max-width: 900px) {
+    .zoom-slider-control {
+        bottom: 12px;
+        padding: 6px 10px;
+    }
+
+    .zoom-slider-range {
+        width: min(50vw, 180px);
+    }
+}
