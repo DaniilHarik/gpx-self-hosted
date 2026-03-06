@@ -90,6 +90,8 @@ function setupZoomSlider() {
         if (state.map?.options) {
             state.map.options.wheelPxPerZoomLevel = preset.wheelPxPerZoomLevel;
             state.map.options.zoomDelta = preset.buttonStep;
+            // Keep gesture-driven zoom snapping aligned with the active click-speed preset.
+            state.map.options.zoomSnap = preset.buttonStep;
         }
     };
 

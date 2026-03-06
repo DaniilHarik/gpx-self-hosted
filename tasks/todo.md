@@ -1,15 +1,15 @@
 # TODO
 
 ## Plan
-- [x] Sync map click-zoom step with the same speed preset used by +/- buttons.
-- [x] Update frontend tests to verify speed preset sync across controls.
-- [x] Update `SPEC.md` and `README.md` wording for synchronized zoom speed behavior.
+- [x] Sync gesture zoom snap with the same speed preset used by +/- clicks and map click-zoom.
+- [x] Update frontend tests to verify gesture snap sync across speed presets.
+- [x] Update `SPEC.md` and `README.md` wording for synchronized gesture zoom behavior.
 - [x] Run automated tests (`npm test`, `go test ./...`).
 
 ## Review
-- Updated `static/js/map.js` so each zoom speed preset now sets both `wheelPxPerZoomLevel` and `map.options.zoomDelta`.
-- Updated `+/-` button handlers to read from `map.options.zoomDelta`, ensuring their click speed stays synchronized with map click-zoom step.
-- Extended frontend tests in `static/js/__tests__/app.test.cjs` to assert `zoomDelta` synchronization across speed presets.
+- Updated `static/js/map.js` so each zoom speed preset now also sets `map.options.zoomSnap`.
+- This keeps gesture-based zoom snapping aligned with the active preset, alongside `+/-` click zoom, map click-zoom step, and wheel sensitivity.
+- Extended frontend tests in `static/js/__tests__/app.test.cjs` to assert `zoomSnap` synchronization across `Fast`, `Normal`, and `Precise`.
 - Updated user-facing behavior descriptions in `SPEC.md` and `README.md`.
 - Verification:
   - `npm test -- --runInBand` (73 passed)

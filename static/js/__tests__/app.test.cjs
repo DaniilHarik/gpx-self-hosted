@@ -529,6 +529,7 @@ describe('App Logic', () => {
             expect(speedButton).toBeTruthy();
             expect(speedButton.textContent).toBe('Fast');
             expect(mapMock.options.zoomDelta).toBe(1);
+            expect(mapMock.options.zoomSnap).toBe(1);
         });
 
         test('fetches and lists files', () => {
@@ -569,12 +570,13 @@ describe('App Logic', () => {
             expect(mapMock.setZoom).toHaveBeenCalledWith(8);
         });
 
-        test('zoom speed toggle cycles click speed and wheel sensitivity', () => {
+        test('zoom speed toggle cycles click, gesture, and wheel sensitivity', () => {
             const zoomInButton = document.querySelector('#map .zoom-slider-btn[aria-label="Zoom in"]');
             const speedButton = document.querySelector('#map .zoom-speed-btn');
 
             expect(mapMock.options.wheelPxPerZoomLevel).toBe(60);
             expect(mapMock.options.zoomDelta).toBe(1);
+            expect(mapMock.options.zoomSnap).toBe(1);
             zoomInButton.click();
             expect(mapMock.setZoom).toHaveBeenLastCalledWith(8);
 
@@ -582,6 +584,7 @@ describe('App Logic', () => {
             expect(speedButton.textContent).toBe('Normal');
             expect(mapMock.options.wheelPxPerZoomLevel).toBe(90);
             expect(mapMock.options.zoomDelta).toBe(0.5);
+            expect(mapMock.options.zoomSnap).toBe(0.5);
             zoomInButton.click();
             expect(mapMock.setZoom).toHaveBeenLastCalledWith(7.5);
 
@@ -589,6 +592,7 @@ describe('App Logic', () => {
             expect(speedButton.textContent).toBe('Precise');
             expect(mapMock.options.wheelPxPerZoomLevel).toBe(120);
             expect(mapMock.options.zoomDelta).toBe(0.25);
+            expect(mapMock.options.zoomSnap).toBe(0.25);
             zoomInButton.click();
             expect(mapMock.setZoom).toHaveBeenLastCalledWith(7.25);
         });

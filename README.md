@@ -102,7 +102,7 @@ gpx-self-host/
 *   **Automatic Indexing**: Just drop files in `data/Activities/` or `data/Plans/` and refresh.
 *   **Detailed Stats**: Distance, Duration, Speed, Elevation Gain/Loss.
 *   **Multiple Layers**: Switch between OpenTopoMap, OpenStreetMap, and Maa-amet (Estonia).
-*   **Granular Zooming**: Bottom-center zoom slider with click-to-cycle speed presets (`Fast`, `Normal`, `Precise`) synchronized across +/- clicks, map click-zoom step, and wheel zoom behavior.
+*   **Granular Zooming**: Bottom-center zoom slider with click-to-cycle speed presets (`Fast`, `Normal`, `Precise`) synchronized across +/- clicks, gesture snap speed, map click-zoom step, and wheel zoom behavior.
 *   **Search & Filter**: Real-time filtering by name; activity chips; year-based grouping.
 *   **Multi-Track Mode**: View multiple tracks simultaneously with distinct colors.
 *   **Marker Visibility Toggle**: Show/hide start and end markers to reduce clutter when many tracks are loaded.
