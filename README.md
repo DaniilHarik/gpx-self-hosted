@@ -90,7 +90,10 @@ gpx-self-host/
     ├── index.html    # Main application entry point
     ├── css/
     ├── js/
-    │   └── app.js    # Main logic
+    │   ├── app.js    # App bootstrap and event wiring
+    │   ├── files.js  # File list rendering and filters
+    │   ├── map.js    # Map setup and zoom controls
+    │   └── tracks.js # Track loading and visibility
     └── vendor/       # Localized third-party assets (optional)
 ```
 

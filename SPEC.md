@@ -6,7 +6,7 @@ Updated: 2026-01-30
 - Purpose: offline-friendly GPX archive you can run locally to browse, filter, and inspect personal tracks on a map without uploading them to a third party.
 - Form factor: single Go binary serving a static SPA (Leaflet) plus a tile proxy/cache for base maps.
 - Success: fast startup (<1s after `go run`), instant file discovery on refresh, smooth map interaction, and exportable drawn routes.
- - Audience note: this spec is intended for contributors and maintainers; end users should refer to `README.md` for setup and usage.
+- Audience note: this spec is intended for contributors and maintainers; end users should refer to `README.md` for setup and usage.
 
 ## Target Users and Use Cases
 - Outdoor enthusiasts who manage a personal GPX library and want a privacy-preserving viewer.
@@ -16,7 +16,7 @@ Updated: 2026-01-30
 - Layout: left sidebar with search + activity chips; right map canvas with floating stats panel.
 - File browsing: nested folders are shown; activity is inferred from the first folder under `data/Activities/`.
 - Interaction:
-  - Type to filter by name or relative path; multi-select activity chips; “All activities” resets.
+  - Type to filter by name or relative path; multi-select activity chips; the “All” chip resets activity filtering.
   - View toggle: `Activities | Plans`. Tracks under `data/Plans/` are excluded from Activities and only appear in the Plans view.
   - **Theme**: Explicit Light/Dark toggle in the sidebar header; selection persists in `localStorage` and overrides system preference.
   - Click a track to load (exclusive select); map auto-zooms to its bounds; info panel fills with stats.
@@ -41,12 +41,12 @@ Updated: 2026-01-30
   - Tile config endpoint `GET /api/tile-config` mirrors providers and declares the initial provider key (`Cache-Control: no-store`).
   - Status endpoint `GET /api/status` returns cache hit/miss/error counters since process start for lightweight health checks (`Cache-Control: no-store`).
   - Map tiles & caching
-  - Frontend requests tiles through `/tiles/{provider}/{z}/{x}/{y}.(png|jpg)`; server swaps `{z,x,y}` into the provider template and proxies to upstream.
-  - Tile cache stored under `cache/tiles/<provider>/<z>/<x>/<y>.<ext>` where `<ext>` matches the request (today the SPA always uses `.png`).
-  - Known issue: providers that serve JPEG upstream (e.g. Maa-amet Foto) can be cached/served under a `.png` request path, which can lead to incorrect `Content-Type` headers when serving from disk.
-  - Offline mode (`-offline`): cache-only serving; cache misses return 404 without calling upstream or writing to disk. Assumes cache warmed or pre-seeded.
-  - Upstream 404 yields 404 without caching; repeated requests to cached tiles must not call upstream.
-  - Cache hit/miss/error counters are updated on each `/tiles` request; current cache size is logged on startup.
+    - Frontend requests tiles through `/tiles/{provider}/{z}/{x}/{y}.(png|jpg)`; server swaps `{z,x,y}` into the provider template and proxies to upstream.
+    - Tile cache stored under `cache/tiles/<provider>/<z>/<x>/<y>.<ext>` where `<ext>` matches the request (today the SPA always uses `.png`).
+    - Known issue: providers that serve JPEG upstream (e.g. Maa-amet Foto) can be cached/served under a `.png` request path, which can lead to incorrect `Content-Type` headers when serving from disk.
+    - Offline mode (`-offline`): cache-only serving; cache misses return 404 without calling upstream or writing to disk. Assumes cache warmed or pre-seeded.
+    - Upstream 404 yields 404 without caching; repeated requests to cached tiles must not call upstream.
+    - Cache hit/miss/error counters are updated on each `/tiles` request; current cache size is logged on startup.
 - Track visualization & stats
   - Uses Leaflet + leaflet-gpx; GPX layer fitted to bounds on load.
   - Start/end markers can be hidden via a UI toggle; waypoint markers remain visible.
@@ -55,10 +55,10 @@ Updated: 2026-01-30
 - Filtering & list rendering
   - Files sorted by date (filename prefix) descending; list items visually grouped by year with separators.
   - Search filters by filename or relative path (case-insensitive).
-- Activity chips: auto-generated from activities (derived from the first folder under `Activities/`); multi-select supported; “All” when none selected (excludes `Plans/`).
-- Separate view: `data/Plans/` is treated as the Plans view (not an activity chip), and the view toggle is disabled when no plan files exist.
-- Plans view: activity chips are hidden; items are sorted alphabetically by relative path; year grouping is disabled.
-- Known activity icons: Backpacking (`backpacking`), Speed Hiking (`speed hiking`), Bikepacking (`bikepacking`), Gravel (`gravel`), MTB (`mtb` / `MTB` / `mountain biking`), Ice Skating (`iceskating`), Sailing (`sailing`), Overlanding (`overlanding`), Flights (`flight` / `flights`); unknown activities fall back to a generic route icon.
+  - Activity chips: auto-generated from activities (derived from the first folder under `Activities/`); multi-select supported; the “All” chip is active when no activity filters are selected and `Plans` is excluded.
+  - Separate view: `data/Plans/` is treated as the Plans view (not an activity chip), and the view toggle is disabled when no plan files exist.
+  - Plans view: activity chips are hidden; items are sorted alphabetically by relative path; year grouping is disabled.
+  - Known activity icons: Backpacking (`backpacking`), Speed Hiking (`speed hiking`), Bikepacking (`bikepacking`), Gravel (`gravel`), MTB (`mtb`, `mountain biking`, `mountain_biking`), Ice Skating (`iceskating`, `ice skating`, `ice-skating`, `ice_skating`), Sailing (`sailing`), Overlanding (`overlanding`), Flights (`flight`, `flights`); matching is case-insensitive and unknown activities fall back to a generic route icon.
   - Each row shows activity icon/chip, optional date parsed from filename prefix, cleaned title (underscores→spaces, dashes kept), optional nested folder label.
 - Drawing & export
   - Leaflet Draw toolbar available with polyline + marker tools; drawn items kept in a feature group.
@@ -82,7 +82,7 @@ Updated: 2026-01-30
 - Cache eviction/TTL not implemented—manual clearing required; should a size cap be enforced?
 - No upload UI; users must place files in the `data` directory and refresh—do we need drag-and-drop or live reload?
 - Authentication/ACLs are absent; intended for trusted local networks—any need for basic auth?
-- Raw file serving and tile proxy paths are permissive (directory listings, symlinks, unvalidated `{z}/{x}/{y}`); tighten validation and cache write safety before exposing to untrusted networks.
+- Raw file serving remains permissive (`/data/` directory listings and symlink handling), and tile cache writes are still unsynchronized; avoid exposing the app to untrusted networks until file-serving restrictions and write safety are hardened.
 - Historical note: a "prewarm/download current view" tile cache feature was tried but proved fragile and was removed.
 
 ## Security & Reliability (Summary)
