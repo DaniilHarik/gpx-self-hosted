@@ -1,8 +1,7 @@
 # Agent Guide
 
 ## Project
-Self-hosted GPX viewer with a Go backend, vanilla JS frontend, and on-disk
-tile caching.
+Self-hosted GPX viewer with a Go backend, vanilla JS frontend, and on-disk tile caching.
 
 ## Non-negotiables
 - When a feature is changed or added, always update `SPEC.md`.
@@ -79,17 +78,9 @@ tile caching.
 - Skip this for simple, obvious fixes – don't over-engineer
 - Challenge your own work before presenting it
 
-## Task Management
-
-1. **Plan First**: Write plan to `tasks/todo.md` with checkable items
-2. **Verify Plan**: Check in before starting implementation
-3. **Track Progress**: Mark items complete as you go
-4. **Explain Changes**: High-level summary at each step
-5. **Document Results**: Add review section to `tasks/todo.md`
-6. **Capture Lessons**: Update `tasks/lessons.md` after corrections
-
 ## Core Principles
 
+- **Capture Lessons**: Update `tasks/lessons.md` after corrections
 - **Simplicity First**: Make every change as simple as possible. Impact minimal code.
 - **No Laziness**: Find root causes. No temporary fixes. Senior developer standards.
 - **Minimal Impact**: Changes should only touch what's necessary. Avoid introducing bugs.
