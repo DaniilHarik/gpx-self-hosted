@@ -184,14 +184,14 @@ func defaultProviders() map[string]TileProviderConfig {
 			URLTemplate: "https://tiles.maaamet.ee/tm/tms/1.0.0/foto@GMC/{z}/{x}/{y}.jpg&ASUTUS=MAAAMET&KESKKOND=LIVE&IS=TMSNAIDE",
 			IsTMS:       true,
 			Attribution: "Maa-amet",
-			ZoomRange:   [2]int{0, 19},
+			ZoomRange:   [2]int{0, 18},
 		},
 		"maaamet-kaart": {
 			Name:        "Maa-amet Kaart",
 			URLTemplate: "https://tiles.maaamet.ee/tm/tms/1.0.0/kaart@GMC/{z}/{x}/{y}.png&ASUTUS=MAAAMET&KESKKOND=LIVE&IS=TMSNAIDE",
 			IsTMS:       true,
 			Attribution: "Maa-amet",
-			ZoomRange:   [2]int{0, 19},
+			ZoomRange:   [2]int{0, 18},
 		},
 	}
 }
