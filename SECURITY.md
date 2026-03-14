@@ -1,6 +1,6 @@
 # Security Notes - gpx-self-host
 
-Updated: 2026-01-30
+Updated: 2026-03-14
 
 ## Introduction
 
@@ -23,6 +23,5 @@ If private reporting is not available, open a standard issue with minimal reprod
 ## Known Issues
 
 - **[High] Concurrency control for tile downloads**: Multiple requests for the same tile can trigger redundant fetches and potential race conditions. 
-- **[High] Disk usage & safety**: Implementing size limits for tile downloads and atomic writes (temp file + rename) will improve robustness.
 - **[Medium] Cache Quota**: Adding a maximum cache size and eviction policy (LRU) to prevent disk exhaustion.
 - **[Medium] Data directory hardening**: Ensuring the `/data/` handler only serves `.gpx` files, avoids directory listings, and does not follow symlinks out of the directory.

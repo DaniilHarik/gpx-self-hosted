@@ -1,6 +1,6 @@
 # Self-Hosted GPX Viewer — Product Spec
 
-Updated: 2026-01-30
+Updated: 2026-03-14
 
 ## Product Overview
 - Purpose: offline-friendly GPX archive you can run locally to browse, filter, and inspect personal tracks on a map without uploading them to a third party.
@@ -82,11 +82,11 @@ Updated: 2026-01-30
 - Cache eviction/TTL not implemented—manual clearing required; should a size cap be enforced?
 - No upload UI; users must place files in the `data` directory and refresh—do we need drag-and-drop or live reload?
 - Authentication/ACLs are absent; intended for trusted local networks—any need for basic auth?
-- Raw file serving remains permissive (`/data/` directory listings and symlink handling), and tile cache writes are still unsynchronized; avoid exposing the app to untrusted networks until file-serving restrictions and write safety are hardened.
+- Raw file serving remains permissive (`/data/` directory listings and symlink handling); avoid exposing the app to untrusted networks until file-serving restrictions are hardened. Tile cache writes are now atomic (temp file + rename), so partial writes no longer corrupt the cache.
 - Historical note: a "prewarm/download current view" tile cache feature was tried but proved fragile and was removed.
 
 ## Security & Reliability (Summary)
-See [SECURITY.md](SECURITY.md) for the full hardening roadmap. Key focus areas include tile proxy parameter validation, concurrency control for downloads, and atomic file writes.
+See [SECURITY.md](SECURITY.md) for the full hardening roadmap. Key focus areas include tile proxy parameter validation and concurrency control for downloads. Tile cache writes are now atomic (temp file + rename).
 
 ## Feature Roadmap Ideas
 

@@ -163,20 +163,31 @@ func (s *Service) GetTile(ctx context.Context, providerName, z, x, yPng string) 
 		return "", fmt.Errorf("failed to create cache directory: %w", err)
 	}
 
-	out, err := os.Create(cachePath)
+	// Write to a temp file first so that a partial write never leaves a
+	// corrupt entry at cachePath. os.Rename within the same directory is
+	// atomic on POSIX systems.
+	tmp, err := os.CreateTemp(cacheDir, "tile-*.tmp")
 	if err != nil {
 		atomic.AddUint64(&s.cacheErrors, 1)
-		return "", fmt.Errorf("failed to save tile: %w", err)
+		return "", fmt.Errorf("failed to create temp file: %w", err)
 	}
-	defer out.Close()
+	tmpPath := tmp.Name()
 
-	if _, err := io.Copy(out, resp.Body); err != nil {
+	if _, err := io.Copy(tmp, resp.Body); err != nil {
+		tmp.Close()
+		_ = os.Remove(tmpPath)
 		atomic.AddUint64(&s.cacheErrors, 1)
-		_ = os.Remove(cachePath)
 		if ctxErr := ctx.Err(); ctxErr != nil {
 			return "", ctxErr
 		}
 		return "", fmt.Errorf("failed to write tile: %w", err)
+	}
+	tmp.Close()
+
+	if err := os.Rename(tmpPath, cachePath); err != nil {
+		_ = os.Remove(tmpPath)
+		atomic.AddUint64(&s.cacheErrors, 1)
+		return "", fmt.Errorf("failed to finalize tile cache: %w", err)
 	}
 
 	return cachePath, nil

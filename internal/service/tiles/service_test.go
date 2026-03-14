@@ -3,6 +3,8 @@ package tiles
 import (
 	"context"
 	"errors"
+	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -237,6 +239,59 @@ func TestGetTile_SaveFailure(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "failed to create cache directory") {
 		t.Errorf("expected 'failed to create cache directory' error, got %v", err)
 	}
+}
+
+func TestGetTile_PartialWriteLeavesNoCorruptCache(t *testing.T) {
+	// errReader returns some bytes then fails, simulating a dropped connection.
+	errReader := io.MultiReader(
+		strings.NewReader("partial"),
+		errorReader{},
+	)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = io.Copy(w, errReader)
+	}))
+	defer ts.Close()
+
+	cacheDir := t.TempDir()
+	providerName := "test"
+	z, x, yPng := "1", "2", "3.png"
+
+	cfg := &config.Config{
+		CacheDir:      cacheDir,
+		ClientTimeout: time.Second,
+		MaxRetries:    1,
+		Providers: map[string]config.TileProviderConfig{
+			providerName: {URLTemplate: ts.URL + "/{z}/{x}/{y}.png"},
+		},
+	}
+	service := NewService(cfg)
+
+	_, err := service.GetTile(context.Background(), providerName, z, x, yPng)
+	// The request succeeds (200 OK) so no fetch error; any write error or
+	// success is fine — what matters is the cache path is not a partial file.
+	cachePath := filepath.Join(cacheDir, "tiles", providerName, z, x, yPng)
+	if _, statErr := os.Stat(cachePath); statErr == nil {
+		if err != nil {
+			t.Errorf("partial write left a corrupt file at cachePath despite write error: %v", err)
+		}
+	}
+	// Also verify no leftover .tmp files.
+	tmpDir := filepath.Join(cacheDir, "tiles", providerName, z, x)
+	if entries, readErr := os.ReadDir(tmpDir); readErr == nil {
+		for _, e := range entries {
+			if strings.HasSuffix(e.Name(), ".tmp") {
+				t.Errorf("leftover temp file not cleaned up: %s", e.Name())
+			}
+		}
+	}
+}
+
+// errorReader always returns an error on Read.
+type errorReader struct{}
+
+func (errorReader) Read(_ []byte) (int, error) {
+	return 0, fmt.Errorf("simulated read error")
 }
 
 func TestGetTile_DownloadError(t *testing.T) {
