@@ -140,6 +140,7 @@ function setupZoomSlider() {
     applyZoomSpeed(DEFAULT_ZOOM_SPEED_INDEX);
     syncSliderFromMap();
     state.map.on('zoomend', syncSliderFromMap);
+    state.map.on('zoomlevelschange', syncSliderFromMap);
     state.map.on('baselayerchange', syncSliderFromMap);
 }
 
