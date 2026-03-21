@@ -642,6 +642,11 @@ body {
     background-color: var(--leaflet-control-bg-hover);
 }
 
+.zoom-bbox-btn {
+    min-width: 4.5rem;
+    text-align: center;
+}
+
 @media (max-width: 900px) {
     .zoom-slider-control {
         bottom: 12px;

@@ -597,6 +597,33 @@ describe('App Logic', () => {
             expect(mapMock.setZoom).toHaveBeenLastCalledWith(7.25);
         });
 
+        test('bbox button copies current viewport bounds and resets feedback state', async () => {
+            jest.useFakeTimers();
+            const writeText = jest.fn().mockResolvedValue();
+            Object.defineProperty(window.navigator, 'clipboard', {
+                value: { writeText },
+                configurable: true
+            });
+
+            const bboxButton = document.querySelector('#map .zoom-bbox-btn');
+            expect(bboxButton).toBeTruthy();
+
+            bboxButton.click();
+            await jest.advanceTimersByTimeAsync(1);
+
+            expect(writeText).toHaveBeenCalledWith(
+                'bbox=24.000000,58.000000,25.000000,59.000000\nnorth=59.000000&south=58.000000&east=25.000000&west=24.000000'
+            );
+            expect(bboxButton.textContent).toBe('Copied');
+            expect(bboxButton.dataset.state).toBe('copied');
+
+            await jest.advanceTimersByTimeAsync(1599);
+
+            expect(bboxButton.textContent).toBe('bbox');
+            expect(bboxButton.dataset.state).toBe('idle');
+            jest.useRealTimers();
+        });
+
         test('search filters the file list', () => {
             const input = document.getElementById('filesearch');
             input.value = 'Run';
@@ -1382,7 +1409,7 @@ describe('App edge cases', () => {
 
         expect(tileLayers).toHaveLength(1);
         expect(tileLayers[0].addTo).toHaveBeenCalledWith(mapMock);
-        expect(global.L.tileLayer).toHaveBeenCalledWith('/tiles/opentopomap/{z}/{x}/{y}.png', expect.objectContaining({ maxZoom: 15 }));
+        expect(global.L.tileLayer).toHaveBeenCalledWith('/tiles/opentopomap/{z}/{x}/{y}.png', expect.objectContaining({ maxZoom: 17 }));
         expect(consoleErrorSpy).toHaveBeenCalledWith('Error loading tile config:', expect.any(Error));
         consoleErrorSpy.mockRestore();
     });
@@ -1635,6 +1662,21 @@ describe('App edge cases', () => {
 
             expect(utils.boundsToDto(null)).toBeNull();
             expect(utils.boundsToDto({})).toBeNull();
+        });
+
+        test('buildBboxCopyText formats bbox and query parameters', async () => {
+            const utils = await import('../utils.js');
+            const bounds = {
+                getNorth: () => 59.1234567,
+                getSouth: () => 58.2345678,
+                getEast: () => 25.3456789,
+                getWest: () => 24.4567891
+            };
+
+            expect(utils.buildBboxCopyText(bounds)).toBe(
+                'bbox=24.456789,58.234568,25.345679,59.123457\nnorth=59.123457&south=58.234568&east=25.345679&west=24.456789'
+            );
+            expect(utils.buildBboxCopyText(null)).toBe('');
         });
 
         test('setupLeafletIcons handles missing L gracefully', async () => {

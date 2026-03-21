@@ -64,7 +64,7 @@ export async function initMapLayer() {
     } catch (error) {
         console.error('Error loading tile config:', error);
         L.tileLayer('/tiles/opentopomap/{z}/{x}/{y}.png', {
-            maxZoom: 15,
+            maxZoom: 17,
             attribution: 'Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap (CC-BY-SA)'
         }).addTo(state.map);
 
@@ -72,7 +72,7 @@ export async function initMapLayer() {
             initial: 'opentopomap',
             offline: false,
             providers: {
-                opentopomap: { name: 'OpenTopoMap', isTMS: false, minZoom: 0, maxZoom: 15 }
+                opentopomap: { name: 'OpenTopoMap', isTMS: false, minZoom: 0, maxZoom: 17 }
             }
         };
         state.activeTileProviderKey = 'opentopomap';

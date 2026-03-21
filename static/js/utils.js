@@ -44,6 +44,28 @@ export function boundsToDto(bounds) {
     return null;
 }
 
+export function formatCoordinate(value, digits = 6) {
+    if (!Number.isFinite(value)) return null;
+    return value.toFixed(digits);
+}
+
+export function buildBboxCopyText(bounds) {
+    const dto = boundsToDto(bounds);
+    if (!dto) return '';
+
+    const north = formatCoordinate(dto.north);
+    const south = formatCoordinate(dto.south);
+    const east = formatCoordinate(dto.east);
+    const west = formatCoordinate(dto.west);
+
+    if (!north || !south || !east || !west) return '';
+
+    return [
+        `bbox=${west},${south},${east},${north}`,
+        `north=${north}&south=${south}&east=${east}&west=${west}`
+    ].join('\n');
+}
+
 export function deriveActivity(relativePath) {
     if (!relativePath) return 'Other';
     const segments = relativePath.split('/');

@@ -29,6 +29,11 @@ func TestParse_Defaults(t *testing.T) {
 	if len(cfg.Providers) == 0 {
 		t.Error("expected default providers to be loaded")
 	}
+	if provider, ok := cfg.Providers["opentopomap"]; !ok {
+		t.Error("expected opentopomap provider to be loaded by default")
+	} else if provider.ZoomRange != [2]int{0, 17} {
+		t.Errorf("expected opentopomap zoom range [0 17], got %v", provider.ZoomRange)
+	}
 }
 
 func TestParse_CustomFlags(t *testing.T) {

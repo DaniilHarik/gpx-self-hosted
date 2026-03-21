@@ -12,6 +12,7 @@ const MAP_OPTIONS = {
 };
 const DEFAULT_MIN_ZOOM = 0;
 const DEFAULT_MAX_ZOOM = 20;
+const BBOX_COPY_RESET_MS = 1600;
 const ZOOM_SPEED_PRESETS = [
     { key: 'fast', label: 'Fast', buttonStep: 1.0, wheelPxPerZoomLevel: 60 },
     { key: 'normal', label: 'Normal', buttonStep: 0.5, wheelPxPerZoomLevel: 90 },
@@ -39,6 +40,15 @@ function stopMapPropagation(element) {
     ['click', 'dblclick', 'mousedown', 'mouseup', 'wheel', 'touchstart', 'pointerdown'].forEach((eventName) => {
         element.addEventListener(eventName, (event) => event.stopPropagation());
     });
+}
+
+async function copyTextToClipboard(text) {
+    if (!text) return false;
+    if (typeof navigator !== 'undefined' && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        await navigator.clipboard.writeText(text);
+        return true;
+    }
+    return false;
 }
 
 function setupZoomSlider() {
@@ -79,6 +89,36 @@ function setupZoomSlider() {
     speedButton.type = 'button';
     speedButton.className = 'zoom-speed-btn';
     speedButton.setAttribute('aria-label', 'Change zoom speed');
+
+    const bboxButton = document.createElement('button');
+    bboxButton.type = 'button';
+    bboxButton.className = 'zoom-speed-btn zoom-bbox-btn';
+    bboxButton.textContent = 'bbox';
+    bboxButton.title = 'Copy current map bbox';
+    bboxButton.setAttribute('aria-label', bboxButton.title);
+
+    let bboxResetTimer = null;
+    const resetBboxButton = () => {
+        bboxButton.textContent = 'bbox';
+        bboxButton.title = 'Copy current map bbox';
+        bboxButton.setAttribute('aria-label', bboxButton.title);
+        bboxButton.dataset.state = 'idle';
+    };
+    const flashBboxButtonState = (label, title, stateName) => {
+        if (bboxResetTimer) {
+            window.clearTimeout(bboxResetTimer);
+            bboxResetTimer = null;
+        }
+        bboxButton.textContent = label;
+        bboxButton.title = title;
+        bboxButton.setAttribute('aria-label', title);
+        bboxButton.dataset.state = stateName;
+        if (stateName !== 'idle') {
+            bboxResetTimer = window.setTimeout(() => {
+                resetBboxButton();
+            }, BBOX_COPY_RESET_MS);
+        }
+    };
 
     let currentSpeedIndex = DEFAULT_ZOOM_SPEED_INDEX;
     const applyZoomSpeed = (nextIndex) => {
@@ -129,15 +169,37 @@ function setupZoomSlider() {
         applyZoomSpeed(currentSpeedIndex + 1);
     });
 
+    bboxButton.addEventListener('click', async () => {
+        const bounds = state.map?.getBounds?.();
+        const copyText = utils.buildBboxCopyText(bounds);
+        if (!copyText) {
+            flashBboxButtonState('No bbox', 'Current map bbox is unavailable', 'error');
+            return;
+        }
+
+        try {
+            const copied = await copyTextToClipboard(copyText);
+            if (!copied) {
+                flashBboxButtonState('No Copy', 'Clipboard API unavailable', 'error');
+                return;
+            }
+            flashBboxButtonState('Copied', 'Copied current map bbox', 'copied');
+        } catch {
+            flashBboxButtonState('Failed', 'Failed to copy current map bbox', 'error');
+        }
+    });
+
     control.appendChild(zoomOutButton);
     control.appendChild(slider);
     control.appendChild(zoomInButton);
     control.appendChild(zoomValue);
     control.appendChild(speedButton);
+    control.appendChild(bboxButton);
 
     stopMapPropagation(control);
     mapContainer.appendChild(control);
     applyZoomSpeed(DEFAULT_ZOOM_SPEED_INDEX);
+    resetBboxButton();
     syncSliderFromMap();
     state.map.on('zoomend', syncSliderFromMap);
     state.map.on('zoomlevelschange', syncSliderFromMap);

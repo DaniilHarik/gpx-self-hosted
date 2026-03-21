@@ -177,7 +177,7 @@ func defaultProviders() map[string]TileProviderConfig {
 			URLTemplate: "https://c.tile.opentopomap.org/{z}/{x}/{y}.png",
 			IsTMS:       false,
 			Attribution: "Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap (CC-BY-SA)",
-			ZoomRange:   [2]int{0, 15},
+			ZoomRange:   [2]int{0, 17},
 		},
 		"maaamet-foto": {
 			Name:        "Maa-amet Foto",
