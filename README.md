@@ -18,6 +18,7 @@ This is a personal project with specialized requirements.
 * **AI-Native Development**: This project was built 95% using AI coding agents. It is designed to be easy to maintain and extend using AI, with comprehensive tests and a modular structure. 
 * **Security**: Currently intended for **local/trusted network use**. See [SECURITY.md](SECURITY.md) for current hardening status and recommendations.
 * **Targeted Use**: Initially developed with specific features for Estonia (e.g., Maa-amet and OpenTopoMap layers), but extensible to any region.
+* **OpenStreetMap Compliance**: Requests to the built-in `openstreetmap` provider identify the backend proxy with an app-specific `User-Agent` and forward the browser `Referer` when present so standard OSM tiles can distinguish proxied web traffic.
 
 ### Prerequisites
 * [Go](https://go.dev/dl/) 1.25+ installed.
@@ -62,7 +63,7 @@ The backend is written in **Go** (Golang) and uses the standard library (`net/ht
     *   `GET /api/gpx`: Traverses `data/Activities/` and `data/Plans/` and returns a JSON list of available files.
     *   `GET /api/tile-config`: Returns available tile providers + offline mode state.
     *   `GET /api/status`: Returns basic cache statistics (hits/misses/errors).
-*   **Tile Proxy + Cache**: `GET /tiles/{provider}/{z}/{x}/{y}.(png|jpg)` downloads and caches map tiles under `cache/tiles/`.
+*   **Tile Proxy + Cache**: `GET /tiles/{provider}/{z}/{x}/{y}.(png|jpg)` downloads and caches map tiles under `cache/tiles/`. Requests to the built-in `openstreetmap` provider additionally send an app-specific `User-Agent` and forward the browser `Referer` when available.
 *   **Service Layer**: Business logic is decoupled into `internal/service/` for better testability and maintainability.
 
 ### 2. Frontend (HTML/JS/CSS)
@@ -194,3 +195,5 @@ Run with `-offline` (or set `Offline: true` in JSON/ENV) to block all upstream t
 - Warm the cache while online by browsing the areas/zooms you care about.
 - Start the server with `./run.sh -offline`.
 - If a requested tile is missing from the cache, the server returns `404` instead of reaching out to the provider.
+
+When the app is online and proxying standard OpenStreetMap tiles, that provider can see the proxy `User-Agent` and may also receive the page `Referer` (for example `http://localhost:8080/`) if the browser supplied one.

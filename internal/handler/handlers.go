@@ -19,7 +19,7 @@ type GPXService interface {
 }
 
 type TilesService interface {
-	GetTile(ctx context.Context, providerName, z, x, yPng string) (string, error)
+	GetTile(ctx context.Context, providerName, z, x, yPng, referer string) (string, error)
 	GetStats() model.StatusResponse
 }
 
@@ -93,7 +93,7 @@ func (h *Handlers) TileProxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	path, err := h.tileService.GetTile(r.Context(), providerName, z, x, yPng)
+	path, err := h.tileService.GetTile(r.Context(), providerName, z, x, yPng, r.Referer())
 	if err != nil {
 		if errors.Is(err, tiles.ErrUnknownProvider) {
 			http.Error(w, "Unknown provider", http.StatusNotFound)

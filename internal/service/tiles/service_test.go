@@ -40,7 +40,7 @@ func TestGetTile_CacheHit(t *testing.T) {
 	}
 	service := NewService(cfg)
 
-	path, err := service.GetTile(context.Background(), providerName, z, x, yPng)
+	path, err := service.GetTile(context.Background(), providerName, z, x, yPng, "")
 	if err != nil {
 		t.Fatalf("GetTile failed: %v", err)
 	}
@@ -67,7 +67,7 @@ func TestGetTile_ContextCanceled(t *testing.T) {
 	}
 	service := NewService(cfg)
 
-	_, err := service.GetTile(ctx, "test", "1", "2", "3.png")
+	_, err := service.GetTile(ctx, "test", "1", "2", "3.png", "")
 	if err == nil || !errors.Is(err, context.Canceled) {
 		t.Fatalf("expected context.Canceled, got %v", err)
 	}
@@ -99,7 +99,7 @@ func TestGetTile_Download(t *testing.T) {
 	}
 	service := NewService(cfg)
 
-	path, err := service.GetTile(context.Background(), providerName, z, x, yPng)
+	path, err := service.GetTile(context.Background(), providerName, z, x, yPng, "")
 	if err != nil {
 		t.Fatalf("GetTile failed: %v", err)
 	}
@@ -115,6 +115,103 @@ func TestGetTile_Download(t *testing.T) {
 	stats := service.GetStats()
 	if stats.CacheMisses != 1 {
 		t.Errorf("expected 1 cache miss, got %d", stats.CacheMisses)
+	}
+}
+
+func TestGetTile_OpenStreetMapSetsUserAgentAndReferer(t *testing.T) {
+	var gotUserAgent string
+	var gotReferer string
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotUserAgent = r.Header.Get("User-Agent")
+		gotReferer = r.Header.Get("Referer")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	}))
+	defer ts.Close()
+
+	cfg := &config.Config{
+		CacheDir:      t.TempDir(),
+		ClientTimeout: time.Second,
+		MaxRetries:    1,
+		Providers: map[string]config.TileProviderConfig{
+			"openstreetmap": {URLTemplate: ts.URL + "/{z}/{x}/{y}.png"},
+		},
+	}
+	service := NewService(cfg)
+
+	_, err := service.GetTile(context.Background(), "openstreetmap", "1", "2", "3.png", "http://localhost:8080/")
+	if err != nil {
+		t.Fatalf("GetTile failed: %v", err)
+	}
+
+	if gotUserAgent != tileProxyUserAgent {
+		t.Fatalf("expected User-Agent %q, got %q", tileProxyUserAgent, gotUserAgent)
+	}
+	if gotReferer != "http://localhost:8080/" {
+		t.Fatalf("expected Referer to be forwarded, got %q", gotReferer)
+	}
+}
+
+func TestGetTile_OpenStreetMapIgnoresInvalidReferer(t *testing.T) {
+	var gotReferer string
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotReferer = r.Header.Get("Referer")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	}))
+	defer ts.Close()
+
+	cfg := &config.Config{
+		CacheDir:      t.TempDir(),
+		ClientTimeout: time.Second,
+		MaxRetries:    1,
+		Providers: map[string]config.TileProviderConfig{
+			"openstreetmap": {URLTemplate: ts.URL + "/{z}/{x}/{y}.png"},
+		},
+	}
+	service := NewService(cfg)
+
+	_, err := service.GetTile(context.Background(), "openstreetmap", "1", "2", "3.png", "javascript:alert(1)")
+	if err != nil {
+		t.Fatalf("GetTile failed: %v", err)
+	}
+
+	if gotReferer != "" {
+		t.Fatalf("expected invalid referer to be dropped, got %q", gotReferer)
+	}
+}
+
+func TestGetTile_NonOpenStreetMapDoesNotSetPolicyHeaders(t *testing.T) {
+	var gotUserAgent string
+	var gotReferer string
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotUserAgent = r.Header.Get("User-Agent")
+		gotReferer = r.Header.Get("Referer")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	}))
+	defer ts.Close()
+
+	cfg := &config.Config{
+		CacheDir:      t.TempDir(),
+		ClientTimeout: time.Second,
+		MaxRetries:    1,
+		Providers: map[string]config.TileProviderConfig{
+			"test": {URLTemplate: ts.URL + "/{z}/{x}/{y}.png"},
+		},
+	}
+	service := NewService(cfg)
+
+	_, err := service.GetTile(context.Background(), "test", "1", "2", "3.png", "http://localhost:8080/")
+	if err != nil {
+		t.Fatalf("GetTile failed: %v", err)
+	}
+
+	if gotUserAgent == tileProxyUserAgent {
+		t.Fatalf("expected custom User-Agent to be omitted for non-OpenStreetMap providers")
+	}
+	if gotReferer != "" {
+		t.Fatalf("expected Referer to be omitted for non-OpenStreetMap providers, got %q", gotReferer)
 	}
 }
 
@@ -149,7 +246,7 @@ func TestGetTile_Retry(t *testing.T) {
 	// We'll just wait or we could refactor service.go to take a retry delay.
 	// For now, let's just run it as is.
 
-	path, err := service.GetTile(context.Background(), "test", "1", "2", "3.png")
+	path, err := service.GetTile(context.Background(), "test", "1", "2", "3.png", "")
 	if err != nil {
 		t.Fatalf("GetTile failed: %v", err)
 	}
@@ -176,7 +273,7 @@ func TestGetTile_Offline(t *testing.T) {
 	}
 	service := NewService(cfg)
 
-	_, err := service.GetTile(context.Background(), "test", "1", "2", "3.png")
+	_, err := service.GetTile(context.Background(), "test", "1", "2", "3.png", "")
 	if err == nil || !errors.Is(err, ErrOfflineMode) {
 		t.Errorf("expected offline mode error, got %v", err)
 	}
@@ -200,7 +297,7 @@ func TestGetTile_Upstream404(t *testing.T) {
 	}
 	service := NewService(cfg)
 
-	_, err := service.GetTile(context.Background(), "test", "1", "2", "3.png")
+	_, err := service.GetTile(context.Background(), "test", "1", "2", "3.png", "")
 	var upstreamErr *UpstreamStatusError
 	if err == nil || !errors.As(err, &upstreamErr) || upstreamErr.StatusCode != http.StatusNotFound {
 		t.Errorf("expected upstream status 404 error, got %v", err)
@@ -235,7 +332,7 @@ func TestGetTile_SaveFailure(t *testing.T) {
 	}
 	service := NewService(cfg)
 
-	_, err := service.GetTile(context.Background(), "test", "1", "2", "3.png")
+	_, err := service.GetTile(context.Background(), "test", "1", "2", "3.png", "")
 	if err == nil || !strings.Contains(err.Error(), "failed to create cache directory") {
 		t.Errorf("expected 'failed to create cache directory' error, got %v", err)
 	}
@@ -267,7 +364,7 @@ func TestGetTile_PartialWriteLeavesNoCorruptCache(t *testing.T) {
 	}
 	service := NewService(cfg)
 
-	_, err := service.GetTile(context.Background(), providerName, z, x, yPng)
+	_, err := service.GetTile(context.Background(), providerName, z, x, yPng, "")
 	// The request succeeds (200 OK) so no fetch error; any write error or
 	// success is fine — what matters is the cache path is not a partial file.
 	cachePath := filepath.Join(cacheDir, "tiles", providerName, z, x, yPng)
@@ -305,7 +402,7 @@ func TestGetTile_DownloadError(t *testing.T) {
 	}
 	service := NewService(cfg)
 
-	_, err := service.GetTile(context.Background(), "test", "1", "2", "3.png")
+	_, err := service.GetTile(context.Background(), "test", "1", "2", "3.png", "")
 	if err == nil || !strings.Contains(err.Error(), "failed to fetch tile") {
 		t.Errorf("expected 'failed to fetch tile' error, got %v", err)
 	}

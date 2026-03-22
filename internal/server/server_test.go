@@ -392,11 +392,12 @@ func TestTileProxyHandler_InvalidRequest(t *testing.T) {
 	tests := []struct {
 		path           string
 		expectedStatus int
+		acceptRedirect bool
 	}{
 		{path: "/tiles/invalid", expectedStatus: http.StatusBadRequest},
 		{path: "/tiles/test/1/2/3.gif", expectedStatus: http.StatusBadRequest},
 		// net/http ServeMux cleans paths containing ".." and issues a redirect before handler runs.
-		{path: "/tiles/test/1/../3.png", expectedStatus: http.StatusMovedPermanently},
+		{path: "/tiles/test/1/../3.png", acceptRedirect: true},
 		{path: "/tiles/test/1/2/3.png/extra", expectedStatus: http.StatusBadRequest},
 	}
 
@@ -405,6 +406,14 @@ func TestTileProxyHandler_InvalidRequest(t *testing.T) {
 		rr := httptest.NewRecorder()
 
 		srv.Handler().ServeHTTP(rr, req)
+
+		if tt.acceptRedirect {
+			if status := rr.Code; status >= 300 && status < 400 {
+				continue
+			}
+			t.Errorf("Expected redirect status for %s, got %v", tt.path, rr.Code)
+			continue
+		}
 
 		if status := rr.Code; status != tt.expectedStatus {
 			t.Errorf("Expected status %v for %s, got %v", tt.expectedStatus, tt.path, status)

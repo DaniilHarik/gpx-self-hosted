@@ -24,12 +24,12 @@ func (m *mockGPXService) ListFiles(ctx context.Context) ([]model.GPXFile, error)
 }
 
 type mockTilesService struct {
-	getTileFunc  func(ctx context.Context, providerName, z, x, yPng string) (string, error)
+	getTileFunc  func(ctx context.Context, providerName, z, x, yPng, referer string) (string, error)
 	getStatsFunc func() model.StatusResponse
 }
 
-func (m *mockTilesService) GetTile(ctx context.Context, providerName, z, x, yPng string) (string, error) {
-	return m.getTileFunc(ctx, providerName, z, x, yPng)
+func (m *mockTilesService) GetTile(ctx context.Context, providerName, z, x, yPng, referer string) (string, error) {
+	return m.getTileFunc(ctx, providerName, z, x, yPng, referer)
 }
 
 func (m *mockTilesService) GetStats() model.StatusResponse {
@@ -128,7 +128,7 @@ func TestTileProxyHandler(t *testing.T) {
 			defer os.Remove(tmpFile.Name())
 
 			mockTiles := &mockTilesService{
-				getTileFunc: func(ctx context.Context, providerName, z, x, yPng string) (string, error) {
+				getTileFunc: func(ctx context.Context, providerName, z, x, yPng, referer string) (string, error) {
 					if tt.mockError != nil {
 						return "", tt.mockError
 					}
@@ -163,7 +163,7 @@ func TestTileProxyHandler_SpecificErrors(t *testing.T) {
 	for _, tt := range errorTests {
 		t.Run(tt.err.Error(), func(t *testing.T) {
 			h := New(nil, nil, &mockTilesService{
-				getTileFunc: func(ctx context.Context, providerName, z, x, yPng string) (string, error) {
+				getTileFunc: func(ctx context.Context, providerName, z, x, yPng, referer string) (string, error) {
 					return "", tt.err
 				},
 			})
@@ -176,6 +176,37 @@ func TestTileProxyHandler_SpecificErrors(t *testing.T) {
 				t.Errorf("for error %q expected %d, got %d", tt.err.Error(), tt.expectedStatus, rr.Code)
 			}
 		})
+	}
+}
+
+func TestTileProxyHandler_ForwardsReferer(t *testing.T) {
+	var capturedReferer string
+	h := New(nil, nil, &mockTilesService{
+		getTileFunc: func(ctx context.Context, providerName, z, x, yPng, referer string) (string, error) {
+			capturedReferer = referer
+			tmpFile, err := os.CreateTemp("", "tile*.png")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := tmpFile.Close(); err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { os.Remove(tmpFile.Name()) })
+			return tmpFile.Name(), nil
+		},
+	})
+
+	req := httptest.NewRequest("GET", "/tiles/test/1/2/3.png", nil)
+	req.Header.Set("Referer", "http://localhost:8080/")
+	rr := httptest.NewRecorder()
+
+	h.TileProxy(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rr.Code)
+	}
+	if capturedReferer != "http://localhost:8080/" {
+		t.Fatalf("expected referer to be forwarded, got %q", capturedReferer)
 	}
 }
 

@@ -7,6 +7,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -21,6 +22,8 @@ var (
 	ErrUnknownProvider = errors.New("unknown provider")
 	ErrOfflineMode     = errors.New("offline mode")
 )
+
+const tileProxyUserAgent = "GPXSelfHosted/1.0 (+https://github.com/daniilharik/gpx-self-hosted)"
 
 type UpstreamStatusError struct {
 	StatusCode int
@@ -59,7 +62,7 @@ func (s *Service) GetStats() model.StatusResponse {
 }
 
 // GetTile returns the path to the cached tile, downloading it if necessary.
-func (s *Service) GetTile(ctx context.Context, providerName, z, x, yPng string) (string, error) {
+func (s *Service) GetTile(ctx context.Context, providerName, z, x, yPng, referer string) (string, error) {
 	if err := ctx.Err(); err != nil {
 		return "", err
 	}
@@ -104,6 +107,12 @@ func (s *Service) GetTile(ctx context.Context, providerName, z, x, yPng string) 
 		if reqErr != nil {
 			err = reqErr
 			break
+		}
+		if providerName == "openstreetmap" {
+			req.Header.Set("User-Agent", tileProxyUserAgent)
+			if sanitizedReferer := sanitizeReferer(referer); sanitizedReferer != "" {
+				req.Header.Set("Referer", sanitizedReferer)
+			}
 		}
 		resp, err = s.client.Do(req)
 		if err == nil && resp.StatusCode == http.StatusOK {
@@ -205,4 +214,21 @@ func sleepWithContext(ctx context.Context, d time.Duration) error {
 	case <-timer.C:
 		return nil
 	}
+}
+
+func sanitizeReferer(raw string) string {
+	if raw == "" {
+		return ""
+	}
+
+	parsed, err := url.Parse(raw)
+	if err != nil || !parsed.IsAbs() {
+		return ""
+	}
+
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return ""
+	}
+
+	return parsed.String()
 }
