@@ -115,7 +115,7 @@ async function bootstrapApp(options = {}) {
         addControl: jest.fn().mockReturnThis(),
         on: jest.fn().mockReturnThis(),
         getContainer: jest.fn(() => mapEl),
-        getZoom: jest.fn(() => 7),
+        getZoom: jest.fn(() => 8),
         getCenter: jest.fn(() => ({ lat: 58.6, lng: 25.01 })),
         getMinZoom: jest.fn(() => 0),
         getMaxZoom: jest.fn(() => 20),
@@ -507,7 +507,7 @@ describe('App Logic', () => {
                 zoomDelta: 0.25,
                 wheelPxPerZoomLevel: 60
             }));
-            expect(mapMock.setView).toHaveBeenCalledWith([58.6, 25.01], 7);
+            expect(mapMock.setView).toHaveBeenCalledWith([58.6, 25.01], 8);
             expect(global.fetch).toHaveBeenCalledWith('/api/tile-config');
             expect(global.L.tileLayer).toHaveBeenCalled();
             // Check if layer control was added
@@ -525,8 +525,8 @@ describe('App Logic', () => {
             expect(control).toBeTruthy();
             expect(slider).toBeTruthy();
             expect(slider.step).toBe('0.25');
-            expect(slider.value).toBe('7');
-            expect(valueLabel.textContent).toBe('7.00');
+            expect(slider.value).toBe('8');
+            expect(valueLabel.textContent).toBe('8.00');
             expect(speedButton).toBeTruthy();
             expect(speedButton.textContent).toBe('Fast');
             expect(mapMock.options.zoomDelta).toBe(1);
@@ -567,8 +567,8 @@ describe('App Logic', () => {
             zoomOutButton.click();
             zoomInButton.click();
 
-            expect(mapMock.setZoom).toHaveBeenCalledWith(6);
-            expect(mapMock.setZoom).toHaveBeenCalledWith(8);
+            expect(mapMock.setZoom).toHaveBeenCalledWith(7);
+            expect(mapMock.setZoom).toHaveBeenCalledWith(9);
         });
 
         test('zoom speed toggle cycles click, gesture, and wheel sensitivity', () => {
@@ -579,7 +579,7 @@ describe('App Logic', () => {
             expect(mapMock.options.zoomDelta).toBe(1);
             expect(mapMock.options.zoomSnap).toBe(1);
             zoomInButton.click();
-            expect(mapMock.setZoom).toHaveBeenLastCalledWith(8);
+            expect(mapMock.setZoom).toHaveBeenLastCalledWith(9);
 
             speedButton.click();
             expect(speedButton.textContent).toBe('Normal');
@@ -587,7 +587,7 @@ describe('App Logic', () => {
             expect(mapMock.options.zoomDelta).toBe(0.5);
             expect(mapMock.options.zoomSnap).toBe(0.5);
             zoomInButton.click();
-            expect(mapMock.setZoom).toHaveBeenLastCalledWith(7.5);
+            expect(mapMock.setZoom).toHaveBeenLastCalledWith(8.5);
 
             speedButton.click();
             expect(speedButton.textContent).toBe('Precise');
@@ -595,7 +595,7 @@ describe('App Logic', () => {
             expect(mapMock.options.zoomDelta).toBe(0.25);
             expect(mapMock.options.zoomSnap).toBe(0.25);
             zoomInButton.click();
-            expect(mapMock.setZoom).toHaveBeenLastCalledWith(7.25);
+            expect(mapMock.setZoom).toHaveBeenLastCalledWith(8.25);
         });
 
         test('bbox button copies current viewport bounds and resets feedback state', async () => {

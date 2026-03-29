@@ -19,6 +19,7 @@ Updated: 2026-03-14
   - Type to filter by name or relative path; multi-select activity chips; the “All” chip resets activity filtering.
   - View toggle: `Activities | Plans`. Tracks under `data/Plans/` are excluded from Activities and only appear in the Plans view.
   - **Theme**: Explicit Light/Dark toggle in the sidebar header; selection persists in `localStorage` and overrides system preference.
+  - Initial viewport: map loads centered on Estonia (`58.60, 25.01`) at zoom level `8` before any track is selected.
   - Click a track to load (exclusive select); map auto-zooms to its bounds; info panel fills with stats.
   - **Multi-Track Mode**: Toggle via sidebar header button; active mode adds checkboxes to list items for additive selection; tracks are color-coded (Cycle: Blue → Red → Green → Others) with visual indicators in the list.
   - **Start/End Marker Toggle**: Sidebar header includes a control to show/hide start and end markers across loaded tracks to reduce clutter in dense multi-track views.

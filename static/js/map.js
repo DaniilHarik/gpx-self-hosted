@@ -319,7 +319,7 @@ export function setupLeafletIcons() {
 
 export function initMap() {
     if (typeof L === 'undefined') return;
-    state.map = L.map('map', MAP_OPTIONS).setView([58.60, 25.01], 7);
+    state.map = L.map('map', MAP_OPTIONS).setView([58.60, 25.01], 8);
     setupZoomSlider();
     setupLeafletIcons();
 }
