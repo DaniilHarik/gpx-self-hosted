@@ -612,9 +612,7 @@ describe('App Logic', () => {
             bboxButton.click();
             await jest.advanceTimersByTimeAsync(1);
 
-            expect(writeText).toHaveBeenCalledWith(
-                'bbox=24.000000,58.000000,25.000000,59.000000\nnorth=59.000000&south=58.000000&east=25.000000&west=24.000000'
-            );
+            expect(writeText).toHaveBeenCalledWith('24.000000,58.000000,25.000000,59.000000');
             expect(bboxButton.textContent).toBe('Copied');
             expect(bboxButton.dataset.state).toBe('copied');
 
@@ -1701,7 +1699,7 @@ describe('App edge cases', () => {
             expect(utils.boundsToDto({})).toBeNull();
         });
 
-        test('buildBboxCopyText formats bbox and query parameters', async () => {
+        test('buildBboxCopyText formats west,south,east,north coordinates', async () => {
             const utils = await import('../utils.js');
             const bounds = {
                 getNorth: () => 59.1234567,
@@ -1710,9 +1708,7 @@ describe('App edge cases', () => {
                 getWest: () => 24.4567891
             };
 
-            expect(utils.buildBboxCopyText(bounds)).toBe(
-                'bbox=24.456789,58.234568,25.345679,59.123457\nnorth=59.123457&south=58.234568&east=25.345679&west=24.456789'
-            );
+            expect(utils.buildBboxCopyText(bounds)).toBe('24.456789,58.234568,25.345679,59.123457');
             expect(utils.buildBboxCopyText(null)).toBe('');
         });
 

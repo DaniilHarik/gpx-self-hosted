@@ -68,10 +68,7 @@ export function buildBboxCopyText(bounds) {
 
     if (!north || !south || !east || !west) return '';
 
-    return [
-        `bbox=${west},${south},${east},${north}`,
-        `north=${north}&south=${south}&east=${east}&west=${west}`
-    ].join('\n');
+    return `${west},${south},${east},${north}`;
 }
 
 export function deriveActivity(relativePath) {

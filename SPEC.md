@@ -24,7 +24,7 @@ Updated: 2026-03-14
   - **Multi-Track Mode**: Toggle via sidebar header button; active mode adds checkboxes to list items for additive selection; tracks are color-coded (Cycle: Blue → Red → Green → Others) with visual indicators in the list.
   - **Start/End Marker Toggle**: Sidebar header includes a control to show/hide start and end markers across loaded tracks to reduce clutter in dense multi-track views.
   - **Granular Zooming**: A bottom-center zoom slider supports quarter-step increments (`0.25`), while +/- controls, map click-zoom step, gesture snap step, and wheel zoom speed can be changed via a click-to-cycle speed button (`Fast`, `Normal`, `Precise`); all stay synchronized.
-  - **Viewport BBox Copy**: The bottom-center map controls include a `BBox` button that copies the current viewport bounds in both `bbox=west,south,east,north` form and separate `north/south/east/west` query parameters for reuse in cache tooling or other map workflows.
+  - **Viewport BBox Copy**: The bottom-center map controls include a `BBox` button that copies the current viewport bounds as `west,south,east,north` decimal coordinates for reuse in cache tooling or other map workflows.
   - **Coordinate Copy**: The bottom-center map controls include a coordinate readout seeded from the current map center on load. Clicking the map selects a point, updates the readout with a decimal `lat, lng` pair, and clicking the readout copies that value for Google Maps or other tools.
   - Switch base layers via the map control (OpenStreetMap, OpenTopoMap, Maa-amet kaart/foto; defaults to Maa-amet kaart). Selection persists in `localStorage`.
   - Draw polylines/markers on the map and export current drawings as a GPX download (button disabled until something is drawn).
