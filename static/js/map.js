@@ -6,6 +6,7 @@ import * as utils from './utils.js';
 
 const MAP_OPTIONS = {
     zoomControl: false,
+    doubleClickZoom: false,
     zoomSnap: 0.25,
     zoomDelta: 0.25,
     wheelPxPerZoomLevel: 60
@@ -109,8 +110,8 @@ function setupZoomSlider() {
     const coordsReadout = document.createElement('button');
     coordsReadout.type = 'button';
     coordsReadout.className = 'zoom-coords-readout';
-    coordsReadout.textContent = 'Click map';
-    coordsReadout.title = 'Click the map to select coordinates';
+    coordsReadout.textContent = 'Center unavailable';
+    coordsReadout.title = 'Click to copy current map center coordinates';
     coordsReadout.setAttribute('aria-label', coordsReadout.title);
     coordsReadout.setAttribute('aria-live', 'polite');
     coordsReadout.disabled = true;
@@ -118,7 +119,11 @@ function setupZoomSlider() {
     let bboxResetTimer = null;
     let coordsResetTimer = null;
     let selectedCoordinate = null;
+    let selectedCoordinateMode = 'center';
     let selectedCoordinateText = '';
+    const getCoordinateReadoutTitle = () => selectedCoordinateMode === 'manual'
+        ? 'Click to copy selected coordinates'
+        : 'Click to copy current map center coordinates';
     const resetBboxButton = () => {
         bboxButton.textContent = 'bbox';
         bboxButton.title = 'Copy current map bbox';
@@ -141,19 +146,18 @@ function setupZoomSlider() {
         }
     };
 
-    const updateCoordinateDisplay = (latlng) => {
+    const updateCoordinateDisplay = (latlng, mode = 'center') => {
         selectedCoordinate = latlng && Number.isFinite(latlng.lat) && Number.isFinite(latlng.lng)
             ? { lat: latlng.lat, lng: latlng.lng }
             : null;
+        selectedCoordinateMode = mode === 'manual' ? 'manual' : 'center';
 
         const copyText = utils.buildCoordinateCopyText(selectedCoordinate);
         selectedCoordinateText = copyText;
-        coordsReadout.textContent = copyText || 'Click map';
-        coordsReadout.title = selectedCoordinate
-            ? 'Click to copy selected coordinates'
-            : 'Click the map to select coordinates';
+        coordsReadout.textContent = copyText || 'Center unavailable';
+        coordsReadout.title = getCoordinateReadoutTitle();
         coordsReadout.setAttribute('aria-label', coordsReadout.title);
-        coordsReadout.dataset.state = selectedCoordinate ? 'selected' : 'idle';
+        coordsReadout.dataset.state = selectedCoordinate ? selectedCoordinateMode : 'idle';
         coordsReadout.disabled = !copyText;
     };
 
@@ -162,10 +166,10 @@ function setupZoomSlider() {
             window.clearTimeout(coordsResetTimer);
             coordsResetTimer = null;
         }
-        coordsReadout.textContent = selectedCoordinateText || 'Click map';
-        coordsReadout.title = selectedCoordinate ? 'Click to copy selected coordinates' : 'Click the map to select coordinates';
+        coordsReadout.textContent = selectedCoordinateText || 'Center unavailable';
+        coordsReadout.title = getCoordinateReadoutTitle();
         coordsReadout.setAttribute('aria-label', coordsReadout.title);
-        coordsReadout.dataset.state = selectedCoordinate ? 'selected' : 'idle';
+        coordsReadout.dataset.state = selectedCoordinate ? selectedCoordinateMode : 'idle';
     };
 
     const flashCoordsReadoutState = (label, title, stateName) => {
@@ -213,6 +217,10 @@ function setupZoomSlider() {
         const { min, max } = getZoomBounds();
         const boundedZoom = clampZoom(nextZoom, min, max);
         state.map.setZoom(boundedZoom);
+    };
+    const syncCoordinateDisplayFromMapCenter = () => {
+        updateCoordinateDisplay(getMapCenterCoordinate(), 'center');
+        resetCoordsReadout();
     };
 
     slider.addEventListener('input', () => {
@@ -283,18 +291,30 @@ function setupZoomSlider() {
     mapContainer.appendChild(control);
     applyZoomSpeed(DEFAULT_ZOOM_SPEED_INDEX);
     resetBboxButton();
-    updateCoordinateDisplay(getMapCenterCoordinate());
-    resetCoordsReadout();
+    syncCoordinateDisplayFromMapCenter();
     syncSliderFromMap();
     state.map.on('zoomend', syncSliderFromMap);
+    state.map.on('zoomend', syncCoordinateDisplayFromMapCenter);
     state.map.on('zoomlevelschange', syncSliderFromMap);
     state.map.on('baselayerchange', syncSliderFromMap);
+    state.map.on('moveend', syncCoordinateDisplayFromMapCenter);
     state.map.on('click', (event) => {
-        updateCoordinateDisplay(event?.latlng);
+        const latlng = event?.latlng;
+        if (!latlng || !Number.isFinite(latlng.lat) || !Number.isFinite(latlng.lng)) {
+            return;
+        }
+
+        const currentZoom = typeof state.map?.getZoom === 'function' ? state.map.getZoom() : DEFAULT_MIN_ZOOM;
+        const buttonStep = state.map?.options?.zoomDelta || MAP_OPTIONS.zoomDelta;
+        const { min, max } = getZoomBounds();
+        const nextZoom = clampZoom(currentZoom + buttonStep, min, max);
+        state.map.setView([latlng.lat, latlng.lng], nextZoom);
+        updateCoordinateDisplay(latlng, 'center');
         resetCoordsReadout();
     });
     state.map.on('contextmenu', (event) => {
-        updateCoordinateDisplay(event?.latlng);
+        event?.originalEvent?.preventDefault?.();
+        updateCoordinateDisplay(event?.latlng, 'manual');
         resetCoordsReadout();
     });
 }

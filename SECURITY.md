@@ -1,6 +1,6 @@
 # Security Notes - gpx-self-host
 
-Updated: 2026-03-14
+Updated: 2026-03-29
 
 ## Introduction
 
@@ -12,7 +12,7 @@ Updated: 2026-03-14
 
 - **Tile request validation**: `/tiles/{provider}/{z}/{x}/{y}.(png|jpg)` rejects malformed provider names, non-numeric coordinates, and unsupported extensions before proxying.
 - **Tile provider compliance**: Requests to the built-in `openstreetmap` provider carry a stable application `User-Agent`, and proxied browser requests forward a valid `Referer` when available so standard OpenStreetMap tiles can distinguish legitimate web traffic.
-- **Tile proxy/cache**: Concurrent requests for the same tile can lead to race conditions or file corruption.
+- **Tile proxy/cache**: Concurrent requests for the same tile can still trigger redundant upstream fetches and last-writer-wins cache races, even though cache writes are now finalized atomically.
 - **Resource limits**: No global controls for tile download concurrency or disk usage.
 - **Data directory exposure**: `/data/` is served via `http.FileServer`, which can expose directory listings and follow symlinks out of the data directory.
 - **Third-party assets**: Frontend scripts/styles use SRI, but are still fetched from CDNs at runtime.

@@ -45,7 +45,7 @@ tile caching.
 - Be careful with concurrent file writes in the tile proxy.
 
 ## Feature specifics
-- Multi-track mode: `isMultiTrackMode` in `static/js/app.js`.
+- Multi-track mode: `isMultiTrackMode` in `static/js/state.js`.
 - Plans view: `data/Plans/` is handled separately from `data/Activities/`.
 
 ## Technical details

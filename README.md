@@ -102,10 +102,10 @@ gpx-self-host/
 
 *   **Automatic Indexing**: Just drop files in `data/Activities/` or `data/Plans/` and refresh.
 *   **Detailed Stats**: Distance, Duration, Speed, Elevation Gain/Loss.
-*   **Multiple Layers**: Switch between OpenTopoMap, OpenStreetMap, and Maa-amet (Estonia); the default OpenTopoMap provider supports zoom levels `0-17`.
-*   **Granular Zooming**: Bottom-center zoom slider with click-to-cycle speed presets (`Fast`, `Normal`, `Precise`) synchronized across +/- clicks, gesture snap speed, map click-zoom step, and wheel zoom behavior.
+*   **Multiple Layers**: Switch between OpenTopoMap, OpenStreetMap, and Maa-amet (Estonia); the default base layer is Maa-amet kaart, and OpenTopoMap supports zoom levels `0-17`.
+*   **Granular Zooming**: Bottom-center zoom slider with click-to-cycle speed presets (`Fast`, `Normal`, `Precise`) synchronized across +/- clicks, single-click map zoom, gesture snap speed, and wheel zoom behavior.
 *   **Viewport BBox Copy**: Copy the current map viewport bounds as `west,south,east,north` decimal coordinates from the bottom map controls.
-*   **Coordinate Copy**: The bottom map controls start with the current map-center `lat, lng`, and clicking the map updates that readout; click the readout itself to copy it.
+*   **Coordinate Copy**: The bottom map controls keep showing the current map-center `lat, lng`; right-click any point to target that exact coordinate for copying, then click the readout itself to copy it.
 *   **Search & Filter**: Real-time filtering by name; activity chips; year-based grouping.
 *   **Multi-Track Mode**: View multiple tracks simultaneously with distinct colors.
 *   **Marker Visibility Toggle**: Show/hide start and end markers to reduce clutter when many tracks are loaded.

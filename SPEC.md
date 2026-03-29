@@ -1,6 +1,6 @@
 # Self-Hosted GPX Viewer — Product Spec
 
-Updated: 2026-03-14
+Updated: 2026-03-29
 
 ## Product Overview
 - Purpose: offline-friendly GPX archive you can run locally to browse, filter, and inspect personal tracks on a map without uploading them to a third party.
@@ -23,9 +23,9 @@ Updated: 2026-03-14
   - Click a track to load (exclusive select); map auto-zooms to its bounds; info panel fills with stats.
   - **Multi-Track Mode**: Toggle via sidebar header button; active mode adds checkboxes to list items for additive selection; tracks are color-coded (Cycle: Blue → Red → Green → Others) with visual indicators in the list.
   - **Start/End Marker Toggle**: Sidebar header includes a control to show/hide start and end markers across loaded tracks to reduce clutter in dense multi-track views.
-  - **Granular Zooming**: A bottom-center zoom slider supports quarter-step increments (`0.25`), while +/- controls, map click-zoom step, gesture snap step, and wheel zoom speed can be changed via a click-to-cycle speed button (`Fast`, `Normal`, `Precise`); all stay synchronized.
+  - **Granular Zooming**: A bottom-center zoom slider supports quarter-step increments (`0.25`), while +/- controls, single-click map zoom, gesture snap step, and wheel zoom speed can be changed via a click-to-cycle speed button (`Fast`, `Normal`, `Precise`); all stay synchronized.
   - **Viewport BBox Copy**: The bottom-center map controls include a `BBox` button that copies the current viewport bounds as `west,south,east,north` decimal coordinates for reuse in cache tooling or other map workflows.
-  - **Coordinate Copy**: The bottom-center map controls include a coordinate readout seeded from the current map center on load. Clicking the map selects a point, updates the readout with a decimal `lat, lng` pair, and clicking the readout copies that value for Google Maps or other tools.
+  - **Coordinate Copy**: The bottom-center map controls include a coordinate readout seeded from the current map center on load and kept in sync with the current viewport center. Right-clicking the map temporarily targets a decimal `lat, lng` pair for that exact point, and clicking the readout copies the currently shown value for Google Maps or other tools.
   - Switch base layers via the map control (OpenStreetMap, OpenTopoMap, Maa-amet kaart/foto; defaults to Maa-amet kaart). Selection persists in `localStorage`.
   - Draw polylines/markers on the map and export current drawings as a GPX download (button disabled until something is drawn).
   - Draw toolbar includes a high-resolution image export that downloads the current map viewport as PNG, including visible tracks, drawn vectors, and markers.
@@ -75,7 +75,7 @@ Updated: 2026-03-14
 
 ## Non-Functional Requirements
 - Privacy/offline: no third-party upload of GPX; only outbound calls are tile requests to configured providers (or none when `-offline` is set).
-- Performance: tile fetch timeout configurable; cache prevents redundant upstream calls; UI stays responsive while filtering large lists.
+- Performance: tile fetch timeout configurable; cache prevents redundant upstream calls after tiles are cached, though concurrent cache misses can still trigger duplicate upstream fetches; UI stays responsive while filtering large lists.
 - Footprint: Go stdlib backend; frontend relies on CDN Leaflet/Leaflet Draw/Font Awesome; runs without database.
 - Compatibility: desktop and mobile map interaction; works on modern browsers.
 - Testing: Go unit tests for config, GPX listing, tile proxy, caching; Jest + jsdom tests for UI logic, filters, stats formatting, GPX export.

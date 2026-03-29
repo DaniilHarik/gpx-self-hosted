@@ -503,6 +503,7 @@ describe('App Logic', () => {
         test('initializes map with config', () => {
             expect(global.L.map).toHaveBeenCalledWith('map', expect.objectContaining({
                 zoomControl: false,
+                doubleClickZoom: false,
                 zoomSnap: 0.25,
                 zoomDelta: 0.25,
                 wheelPxPerZoomLevel: 60
@@ -636,25 +637,50 @@ describe('App Logic', () => {
             expect(document.querySelector('#map .zoom-coords-btn')).toBeNull();
             expect(coordsReadout.textContent).toBe('58.600000, 25.010000');
             expect(coordsReadout.disabled).toBe(false);
+            expect(coordsReadout.dataset.state).toBe('center');
             expect(mapMock.on.mock.calls.some(([event]) => event === 'mousemove')).toBe(false);
+
+            mapMock.getCenter.mockReturnValueOnce({ lat: 58.7123456, lng: 25.1234567 });
+            const moveEndHandler = mapMock.on.mock.calls.find(([event]) => event === 'moveend')[1];
+            moveEndHandler();
+
+            expect(coordsReadout.textContent).toBe('58.712346, 25.123457');
+            expect(coordsReadout.dataset.state).toBe('center');
 
             const clickHandler = mapMock.on.mock.calls.find(([event]) => event === 'click')[1];
             clickHandler({ latlng: { lat: 58.3776251, lng: 26.7290062 } });
 
             expect(coordsReadout.textContent).toBe('58.377625, 26.729006');
-            expect(coordsReadout.dataset.state).toBe('selected');
+            expect(coordsReadout.dataset.state).toBe('center');
             expect(coordsReadout.disabled).toBe(false);
+            expect(mapMock.setView).toHaveBeenLastCalledWith([58.3776251, 26.7290062], 9);
+
+            const contextMenuHandler = mapMock.on.mock.calls.find(([event]) => event === 'contextmenu')[1];
+            const preventDefault = jest.fn();
+            contextMenuHandler({
+                latlng: { lat: 58.384321, lng: 26.736543 },
+                originalEvent: { preventDefault }
+            });
+
+            expect(preventDefault).toHaveBeenCalled();
+            expect(coordsReadout.textContent).toBe('58.384321, 26.736543');
+            expect(coordsReadout.dataset.state).toBe('manual');
 
             coordsReadout.click();
             await jest.advanceTimersByTimeAsync(1);
 
-            expect(writeText).toHaveBeenCalledWith('58.377625, 26.729006');
+            expect(writeText).toHaveBeenCalledWith('58.384321, 26.736543');
             expect(coordsReadout.textContent).toBe('Copied');
             expect(coordsReadout.dataset.state).toBe('copied');
 
             await jest.advanceTimersByTimeAsync(1599);
-            expect(coordsReadout.textContent).toBe('58.377625, 26.729006');
-            expect(coordsReadout.dataset.state).toBe('selected');
+            expect(coordsReadout.textContent).toBe('58.384321, 26.736543');
+            expect(coordsReadout.dataset.state).toBe('manual');
+
+            mapMock.getCenter.mockReturnValueOnce({ lat: 58.4, lng: 26.7 });
+            moveEndHandler();
+            expect(coordsReadout.textContent).toBe('58.400000, 26.700000');
+            expect(coordsReadout.dataset.state).toBe('center');
 
             jest.useRealTimers();
         });
