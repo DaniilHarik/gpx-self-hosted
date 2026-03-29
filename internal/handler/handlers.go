@@ -100,8 +100,7 @@ func (h *Handlers) TileProxy(w http.ResponseWriter, r *http.Request) {
 		} else if errors.Is(err, tiles.ErrOfflineMode) {
 			http.Error(w, "Tile not available offline", http.StatusNotFound)
 		} else {
-			var upstreamErr *tiles.UpstreamStatusError
-			if errors.As(err, &upstreamErr) {
+			if _, ok := errors.AsType[*tiles.UpstreamStatusError](err); ok {
 				http.Error(w, "Tile not found on upstream", http.StatusNotFound)
 			} else {
 				http.Error(w, "Failed to fetch tile", http.StatusBadGateway)

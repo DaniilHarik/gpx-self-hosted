@@ -298,8 +298,8 @@ func TestGetTile_Upstream404(t *testing.T) {
 	service := NewService(cfg)
 
 	_, err := service.GetTile(context.Background(), "test", "1", "2", "3.png", "")
-	var upstreamErr *UpstreamStatusError
-	if err == nil || !errors.As(err, &upstreamErr) || upstreamErr.StatusCode != http.StatusNotFound {
+	upstreamErr, ok := errors.AsType[*UpstreamStatusError](err)
+	if err == nil || !ok || upstreamErr.StatusCode != http.StatusNotFound {
 		t.Errorf("expected upstream status 404 error, got %v", err)
 	}
 }

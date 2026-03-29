@@ -21,7 +21,7 @@ This is a personal project with specialized requirements.
 * **OpenStreetMap Compliance**: Requests to the built-in `openstreetmap` provider identify the backend proxy with an app-specific `User-Agent` and forward the browser `Referer` when present so standard OSM tiles can distinguish proxied web traffic.
 
 ### Prerequisites
-* [Go](https://go.dev/dl/) 1.25+ installed.
+* [Go](https://go.dev/dl/) 1.26+ installed.
 * [Node.js](https://nodejs.org/) installed (for frontend tests only, optional).
 
 ## Quick start
