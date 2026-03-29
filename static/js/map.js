@@ -13,6 +13,7 @@ const MAP_OPTIONS = {
 const DEFAULT_MIN_ZOOM = 0;
 const DEFAULT_MAX_ZOOM = 20;
 const BBOX_COPY_RESET_MS = 1600;
+const COORD_COPY_RESET_MS = 1600;
 const ZOOM_SPEED_PRESETS = [
     { key: 'fast', label: 'Fast', buttonStep: 1.0, wheelPxPerZoomLevel: 60 },
     { key: 'normal', label: 'Normal', buttonStep: 0.5, wheelPxPerZoomLevel: 90 },
@@ -34,6 +35,14 @@ function getZoomBounds() {
         min: safeMin,
         max: Math.max(safeMax, safeMin)
     };
+}
+
+function getMapCenterCoordinate() {
+    const center = typeof state.map?.getCenter === 'function' ? state.map.getCenter() : null;
+    if (!center || !Number.isFinite(center.lat) || !Number.isFinite(center.lng)) {
+        return null;
+    }
+    return { lat: center.lat, lng: center.lng };
 }
 
 function stopMapPropagation(element) {
@@ -97,7 +106,19 @@ function setupZoomSlider() {
     bboxButton.title = 'Copy current map bbox';
     bboxButton.setAttribute('aria-label', bboxButton.title);
 
+    const coordsReadout = document.createElement('button');
+    coordsReadout.type = 'button';
+    coordsReadout.className = 'zoom-coords-readout';
+    coordsReadout.textContent = 'Click map';
+    coordsReadout.title = 'Click the map to select coordinates';
+    coordsReadout.setAttribute('aria-label', coordsReadout.title);
+    coordsReadout.setAttribute('aria-live', 'polite');
+    coordsReadout.disabled = true;
+
     let bboxResetTimer = null;
+    let coordsResetTimer = null;
+    let selectedCoordinate = null;
+    let selectedCoordinateText = '';
     const resetBboxButton = () => {
         bboxButton.textContent = 'bbox';
         bboxButton.title = 'Copy current map bbox';
@@ -117,6 +138,49 @@ function setupZoomSlider() {
             bboxResetTimer = window.setTimeout(() => {
                 resetBboxButton();
             }, BBOX_COPY_RESET_MS);
+        }
+    };
+
+    const updateCoordinateDisplay = (latlng) => {
+        selectedCoordinate = latlng && Number.isFinite(latlng.lat) && Number.isFinite(latlng.lng)
+            ? { lat: latlng.lat, lng: latlng.lng }
+            : null;
+
+        const copyText = utils.buildCoordinateCopyText(selectedCoordinate);
+        selectedCoordinateText = copyText;
+        coordsReadout.textContent = copyText || 'Click map';
+        coordsReadout.title = selectedCoordinate
+            ? 'Click to copy selected coordinates'
+            : 'Click the map to select coordinates';
+        coordsReadout.setAttribute('aria-label', coordsReadout.title);
+        coordsReadout.dataset.state = selectedCoordinate ? 'selected' : 'idle';
+        coordsReadout.disabled = !copyText;
+    };
+
+    const resetCoordsReadout = () => {
+        if (coordsResetTimer) {
+            window.clearTimeout(coordsResetTimer);
+            coordsResetTimer = null;
+        }
+        coordsReadout.textContent = selectedCoordinateText || 'Click map';
+        coordsReadout.title = selectedCoordinate ? 'Click to copy selected coordinates' : 'Click the map to select coordinates';
+        coordsReadout.setAttribute('aria-label', coordsReadout.title);
+        coordsReadout.dataset.state = selectedCoordinate ? 'selected' : 'idle';
+    };
+
+    const flashCoordsReadoutState = (label, title, stateName) => {
+        if (coordsResetTimer) {
+            window.clearTimeout(coordsResetTimer);
+            coordsResetTimer = null;
+        }
+        coordsReadout.textContent = label;
+        coordsReadout.title = title;
+        coordsReadout.setAttribute('aria-label', title);
+        coordsReadout.dataset.state = stateName;
+        if (stateName !== 'idle') {
+            coordsResetTimer = window.setTimeout(() => {
+                resetCoordsReadout();
+            }, COORD_COPY_RESET_MS);
         }
     };
 
@@ -189,21 +253,50 @@ function setupZoomSlider() {
         }
     });
 
+    coordsReadout.addEventListener('click', async () => {
+        const copyText = utils.buildCoordinateCopyText(selectedCoordinate);
+        if (!copyText) {
+            return;
+        }
+
+        try {
+            const copied = await copyTextToClipboard(copyText);
+            if (!copied) {
+                flashCoordsReadoutState('No Copy', 'Clipboard API unavailable', 'error');
+                return;
+            }
+            flashCoordsReadoutState('Copied', 'Copied selected coordinates', 'copied');
+        } catch {
+            flashCoordsReadoutState('Failed', 'Failed to copy selected coordinates', 'error');
+        }
+    });
+
     control.appendChild(zoomOutButton);
     control.appendChild(slider);
     control.appendChild(zoomInButton);
     control.appendChild(zoomValue);
     control.appendChild(speedButton);
+    control.appendChild(coordsReadout);
     control.appendChild(bboxButton);
 
     stopMapPropagation(control);
     mapContainer.appendChild(control);
     applyZoomSpeed(DEFAULT_ZOOM_SPEED_INDEX);
     resetBboxButton();
+    updateCoordinateDisplay(getMapCenterCoordinate());
+    resetCoordsReadout();
     syncSliderFromMap();
     state.map.on('zoomend', syncSliderFromMap);
     state.map.on('zoomlevelschange', syncSliderFromMap);
     state.map.on('baselayerchange', syncSliderFromMap);
+    state.map.on('click', (event) => {
+        updateCoordinateDisplay(event?.latlng);
+        resetCoordsReadout();
+    });
+    state.map.on('contextmenu', (event) => {
+        updateCoordinateDisplay(event?.latlng);
+        resetCoordsReadout();
+    });
 }
 
 export function setupLeafletIcons() {

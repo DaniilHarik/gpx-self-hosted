@@ -49,6 +49,14 @@ export function formatCoordinate(value, digits = 6) {
     return value.toFixed(digits);
 }
 
+export function buildCoordinateCopyText(latlng) {
+    if (!latlng) return '';
+    const lat = formatCoordinate(latlng.lat);
+    const lng = formatCoordinate(latlng.lng);
+    if (!lat || !lng) return '';
+    return `${lat}, ${lng}`;
+}
+
 export function buildBboxCopyText(bounds) {
     const dto = boundsToDto(bounds);
     if (!dto) return '';

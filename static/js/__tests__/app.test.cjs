@@ -116,6 +116,7 @@ async function bootstrapApp(options = {}) {
         on: jest.fn().mockReturnThis(),
         getContainer: jest.fn(() => mapEl),
         getZoom: jest.fn(() => 7),
+        getCenter: jest.fn(() => ({ lat: 58.6, lng: 25.01 })),
         getMinZoom: jest.fn(() => 0),
         getMaxZoom: jest.fn(() => 20),
         getBounds: jest.fn(() => ({
@@ -621,6 +622,42 @@ describe('App Logic', () => {
 
             expect(bboxButton.textContent).toBe('bbox');
             expect(bboxButton.dataset.state).toBe('idle');
+            jest.useRealTimers();
+        });
+
+        test('coordinate readout starts at map center, then selects map click coordinates and copies on click', async () => {
+            jest.useFakeTimers();
+            const writeText = jest.fn().mockResolvedValue();
+            Object.defineProperty(window.navigator, 'clipboard', {
+                value: { writeText },
+                configurable: true
+            });
+
+            const coordsReadout = document.querySelector('#map .zoom-coords-readout');
+            expect(coordsReadout).toBeTruthy();
+            expect(document.querySelector('#map .zoom-coords-btn')).toBeNull();
+            expect(coordsReadout.textContent).toBe('58.600000, 25.010000');
+            expect(coordsReadout.disabled).toBe(false);
+            expect(mapMock.on.mock.calls.some(([event]) => event === 'mousemove')).toBe(false);
+
+            const clickHandler = mapMock.on.mock.calls.find(([event]) => event === 'click')[1];
+            clickHandler({ latlng: { lat: 58.3776251, lng: 26.7290062 } });
+
+            expect(coordsReadout.textContent).toBe('58.377625, 26.729006');
+            expect(coordsReadout.dataset.state).toBe('selected');
+            expect(coordsReadout.disabled).toBe(false);
+
+            coordsReadout.click();
+            await jest.advanceTimersByTimeAsync(1);
+
+            expect(writeText).toHaveBeenCalledWith('58.377625, 26.729006');
+            expect(coordsReadout.textContent).toBe('Copied');
+            expect(coordsReadout.dataset.state).toBe('copied');
+
+            await jest.advanceTimersByTimeAsync(1599);
+            expect(coordsReadout.textContent).toBe('58.377625, 26.729006');
+            expect(coordsReadout.dataset.state).toBe('selected');
+
             jest.useRealTimers();
         });
 
@@ -1677,6 +1714,12 @@ describe('App edge cases', () => {
                 'bbox=24.456789,58.234568,25.345679,59.123457\nnorth=59.123457&south=58.234568&east=25.345679&west=24.456789'
             );
             expect(utils.buildBboxCopyText(null)).toBe('');
+        });
+
+        test('buildCoordinateCopyText formats decimal latitude and longitude', async () => {
+            const utils = await import('../utils.js');
+            expect(utils.buildCoordinateCopyText({ lat: 59.4371237, lng: 24.7535752 })).toBe('59.437124, 24.753575');
+            expect(utils.buildCoordinateCopyText(null)).toBe('');
         });
 
         test('setupLeafletIcons handles missing L gracefully', async () => {
