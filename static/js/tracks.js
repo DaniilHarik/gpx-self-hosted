@@ -13,14 +13,16 @@ const HIDDEN_MARKER_ICON_URL = TRANSPARENT_SHADOW_URL;
 
 export function setupMultiTrackToggle() {
     const toggleMultiTrackBtn = ui.multiTrackToggle;
-    if (toggleMultiTrackBtn) {
-        toggleMultiTrackBtn.addEventListener('click', () => {
-            state.isMultiTrackMode = !state.isMultiTrackMode;
-            toggleMultiTrackBtn.classList.toggle('active', state.isMultiTrackMode);
-            if (!state.isMultiTrackMode) enforceSingleTrack();
-            applyFilters();
-        });
-    }
+    if (!toggleMultiTrackBtn) return;
+
+    updateMultiTrackToggleUi(toggleMultiTrackBtn);
+
+    toggleMultiTrackBtn.addEventListener('click', () => {
+        state.isMultiTrackMode = !state.isMultiTrackMode;
+        updateMultiTrackToggleUi(toggleMultiTrackBtn);
+        if (!state.isMultiTrackMode) enforceSingleTrack();
+        applyFilters();
+    });
 }
 
 export function setupStartEndMarkerToggle() {
@@ -162,6 +164,20 @@ function updateStartEndMarkerToggleUi(toggleBtn) {
     const title = state.showStartEndMarkers ? 'Hide start/end markers' : 'Show start/end markers';
     toggleBtn.title = title;
     toggleBtn.setAttribute('aria-label', title);
+}
+
+function updateMultiTrackToggleUi(toggleBtn) {
+    const isActive = state.isMultiTrackMode;
+    toggleBtn.classList.toggle('active', isActive);
+    toggleBtn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+
+    const title = isActive ? 'Disable multi-select' : 'Enable multi-select';
+    toggleBtn.title = title;
+    toggleBtn.setAttribute('aria-label', title);
+
+    if (ui.multiTrackToggleLabel) {
+        ui.multiTrackToggleLabel.textContent = 'Multi-select';
+    }
 }
 
 function createTrackLayer(path, name, color, { fitOnLoad = true } = {}) {

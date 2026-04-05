@@ -36,6 +36,7 @@ export const ui = {
     get fileCount() { return document.getElementById('file-count'); },
     get themeToggle() { return document.getElementById('theme-toggle'); },
     get multiTrackToggle() { return document.getElementById('toggle-multi-track'); },
+    get multiTrackToggleLabel() { return document.getElementById('toggle-multi-track-label'); },
     get startEndMarkersToggle() { return document.getElementById('toggle-start-end-markers'); },
 
     // Stats panel

@@ -7,3 +7,4 @@
 - When a control already displays the exact coordinates to copy, do not add a second nearby copy button. Make the readout itself the copy target.
 - In the bottom map utility cluster, place the coordinate readout before the `bbox` action so the primary location-copy affordance comes first.
 - Seed the coordinate readout from the current map center on load instead of showing an empty placeholder.
+- For discoverability fixes in this app, do not solve a subtle-control problem by adding a bulky helper panel. Prefer compact, native-feeling controls that fit the existing sidebar rhythm.

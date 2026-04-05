@@ -279,6 +279,51 @@ body {
     margin-top: 12px;
 }
 
+.list-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 12px;
+    padding-top: 4px;
+}
+
+.list-toolbar-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.mode-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-shrink: 0;
+    padding: 7px 11px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.mode-toggle-btn:hover {
+    border-color: var(--accent);
+    color: var(--text-main);
+}
+
+.mode-toggle-btn.active {
+    background: var(--chip-active-bg);
+    border-color: var(--accent);
+    color: var(--chip-active-text);
+}
+
 .filter-chip {
     display: inline-flex;
     align-items: center;
@@ -674,6 +719,10 @@ body {
 }
 
 @media (max-width: 900px) {
+    .mode-toggle-btn {
+        padding-inline: 10px;
+    }
+
     .zoom-slider-control {
         bottom: 12px;
         padding: 6px 10px;

@@ -113,7 +113,7 @@ gpx-self-host/
 *   **Viewport BBox Copy**: Copy the current map viewport bounds as `west,south,east,north` decimal coordinates from the bottom map controls.
 *   **Coordinate Copy**: The bottom map controls keep showing the current map-center `lat, lng`; right-click any point to target that exact coordinate for copying, then click the readout itself to copy it.
 *   **Search & Filter**: Real-time filtering by name; activity chips; year-based grouping.
-*   **Multi-Track Mode**: View multiple tracks simultaneously with distinct colors.
+*   **Multi-Track Mode**: Use the compact `Multi-select` control above the list to reveal per-row checkboxes and compare multiple tracks with distinct colors.
 *   **Marker Visibility Toggle**: Show/hide start and end markers to reduce clutter when many tracks are loaded.
 *   **Drawing & Export**: Draw new routes on the map and download them as GPX, plus export a high-resolution PNG snapshot of the current map view (tiles + visible overlays).
 

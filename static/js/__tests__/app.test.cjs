@@ -67,8 +67,13 @@ async function bootstrapApp(options = {}) {
                         <i class="fas fa-moon"></i>
                     </button>
                     <button id="toggle-start-end-markers" class="icon-btn active" aria-pressed="true"></button>
-                    <button id="toggle-multi-track" class="icon-btn"></button>
                 </div>
+            </div>
+            <div class="list-toolbar">
+                <span class="list-toolbar-title">Tracks</span>
+                <button id="toggle-multi-track" class="mode-toggle-btn" aria-pressed="false">
+                    <span id="toggle-multi-track-label">Multi-select</span>
+                </button>
             </div>
         </div>
         <ul id="file-list" class="file-list"></ul>
@@ -878,19 +883,26 @@ describe('App Logic', () => {
     describe('Multi-Track Mode', () => {
         test('toggles mode and checkboxes', () => {
             const toggleBtn = document.getElementById('toggle-multi-track');
+            const toggleLabel = document.getElementById('toggle-multi-track-label');
             const list = document.getElementById('file-list');
 
             // Initially single mode, no checkboxes
             expect(list.querySelector('.track-select-cb')).toBeNull();
+            expect(toggleBtn.getAttribute('aria-pressed')).toBe('false');
+            expect(toggleLabel.textContent).toBe('Multi-select');
 
             // Toggle On
             toggleBtn.click();
             expect(toggleBtn.classList.contains('active')).toBe(true);
+            expect(toggleBtn.getAttribute('aria-pressed')).toBe('true');
+            expect(toggleLabel.textContent).toBe('Multi-select');
             expect(list.querySelector('.track-select-cb')).toBeTruthy();
 
             // Toggle Off
             toggleBtn.click();
             expect(toggleBtn.classList.contains('active')).toBe(false);
+            expect(toggleBtn.getAttribute('aria-pressed')).toBe('false');
+            expect(toggleLabel.textContent).toBe('Multi-select');
             expect(list.querySelector('.track-select-cb')).toBeNull();
         });
 

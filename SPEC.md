@@ -21,7 +21,7 @@ Updated: 2026-03-29
   - **Theme**: Explicit Light/Dark toggle in the sidebar header; selection persists in `localStorage` and overrides system preference.
   - Initial viewport: map loads centered on Estonia (`58.60, 25.01`) at zoom level `8` before any track is selected.
   - Click a track to load (exclusive select); map auto-zooms to its bounds; info panel fills with stats.
-  - **Multi-Track Mode**: Toggle via sidebar header button; active mode adds checkboxes to list items for additive selection; tracks are color-coded (Cycle: Blue → Red → Green → Others) with visual indicators in the list.
+  - **Multi-Track Mode**: Toggle from a compact `Multi-select` control above the file list; active mode adds checkboxes to list items for additive selection; tracks are color-coded (Cycle: Blue → Red → Green → Others) with visual indicators in the list.
   - **Start/End Marker Toggle**: Sidebar header includes a control to show/hide start and end markers across loaded tracks to reduce clutter in dense multi-track views.
   - **Granular Zooming**: A bottom-center zoom slider supports quarter-step increments (`0.25`), while +/- controls, single-click map zoom, gesture snap step, and wheel zoom speed can be changed via a click-to-cycle speed button (`Fast`, `Normal`, `Precise`); all stay synchronized.
   - **Viewport BBox Copy**: The bottom-center map controls include a `BBox` button that copies the current viewport bounds as `west,south,east,north` decimal coordinates for reuse in cache tooling or other map workflows.
