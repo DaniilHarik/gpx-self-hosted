@@ -90,19 +90,25 @@ gpx-self-host/
 └── static/           # Frontend assets
     ├── index.html    # Main application entry point
     ├── css/
+    │   └── style.css # App styling
     ├── js/
     │   ├── app.js    # App bootstrap and event wiring
-    │   ├── files.js  # File list rendering and filters
-    │   ├── map.js    # Map setup and zoom controls
-    │   └── tracks.js # Track loading and visibility
-    └── vendor/       # Localized third-party assets (optional)
+    │   ├── draw.js   # Drawing tools and GPX/image export
+    │   ├── files.js  # File list rendering, search, and view filters
+    │   ├── map.js    # Map setup, theme, and bottom map controls
+    │   ├── state.js  # Shared state and UI element accessors
+    │   ├── tiles.js  # Tile provider config and base-layer setup
+    │   ├── tracks.js # Track loading, focus, and marker toggles
+    │   └── utils.js  # Shared formatting and activity helpers
 ```
 
 ## Features
 
 *   **Automatic Indexing**: Just drop files in `data/Activities/` or `data/Plans/` and refresh.
+*   **Activities and Plans Views**: Switch between `Activities` and `Plans`; plans are kept out of the activity chip filter and listed separately.
 *   **Detailed Stats**: Distance, Duration, Speed, Elevation Gain/Loss.
-*   **Multiple Layers**: Switch between OpenTopoMap, OpenStreetMap, and Maa-amet (Estonia); the default base layer is Maa-amet kaart, and OpenTopoMap supports zoom levels `0-17`.
+*   **Light/Dark Theme Toggle**: Toggle the theme from the sidebar header; the selected mode is stored in `localStorage` and overrides system preference on future visits.
+*   **Multiple Layers**: Switch between OpenTopoMap, OpenStreetMap, and Maa-amet (Estonia); the default base layer is Maa-amet kaart, and OpenTopoMap supports zoom levels `0-17`. Note: `maaamet-foto` currently proxies through a `.png` tile path while the upstream serves JPEG, so cached responses can carry the wrong `Content-Type` until that mismatch is fixed.
 *   **Granular Zooming**: Bottom-center zoom slider with click-to-cycle speed presets (`Fast`, `Normal`, `Precise`) synchronized across +/- clicks, single-click map zoom, gesture snap speed, and wheel zoom behavior.
 *   **Viewport BBox Copy**: Copy the current map viewport bounds as `west,south,east,north` decimal coordinates from the bottom map controls.
 *   **Coordinate Copy**: The bottom map controls keep showing the current map-center `lat, lng`; right-click any point to target that exact coordinate for copying, then click the readout itself to copy it.
@@ -169,7 +175,7 @@ Create a `config.json` file in the root directory. You can override any of the s
       "URLTemplate": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
       "IsTMS": false,
       "Attribution": "© OpenStreetMap contributors",
-      "ZoomRange": [0, 19]
+      "ZoomRange": [0, 18]
     }
   }
 }

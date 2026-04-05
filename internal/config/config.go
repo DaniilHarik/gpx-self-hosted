@@ -165,13 +165,13 @@ func Parse(fs *flag.FlagSet, args []string) (*Config, error) {
 
 func defaultProviders() map[string]TileProviderConfig {
 	return map[string]TileProviderConfig{
-		"openstreetmap": {
-			Name:        "OpenStreetMap",
-			URLTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-			IsTMS:       false,
-			Attribution: "© OpenStreetMap contributors",
-			ZoomRange:   [2]int{0, 19},
-		},
+			"openstreetmap": {
+				Name:        "OpenStreetMap",
+				URLTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+				IsTMS:       false,
+				Attribution: "© OpenStreetMap contributors",
+				ZoomRange:   [2]int{0, 18},
+			},
 		"opentopomap": {
 			Name:        "OpenTopoMap",
 			URLTemplate: "https://c.tile.opentopomap.org/{z}/{x}/{y}.png",

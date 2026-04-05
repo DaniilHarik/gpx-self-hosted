@@ -1482,7 +1482,7 @@ describe('App edge cases', () => {
                 initial: 'openstreetmap',
                 providers: {
                     opentopomap: { name: 'OpenTopoMap', isTMS: false },
-                    openstreetmap: { name: 'OpenStreetMap', isTMS: false, minZoom: 0, maxZoom: 19, attribution: '© OpenStreetMap contributors' }
+                    openstreetmap: { name: 'OpenStreetMap', isTMS: false, minZoom: 0, maxZoom: 18, attribution: '© OpenStreetMap contributors' }
                 }
             },
             tileLayerFactory: () => ({
@@ -1494,7 +1494,7 @@ describe('App edge cases', () => {
         const osmIndex = calls.findIndex(([url]) => url === '/tiles/openstreetmap/{z}/{x}/{y}.png');
         expect(osmIndex).toBeGreaterThanOrEqual(0);
         expect(calls[osmIndex][1]).toEqual(expect.objectContaining({
-            maxZoom: 19,
+            maxZoom: 18,
             minZoom: 0,
             attribution: '© OpenStreetMap contributors',
             tms: false
