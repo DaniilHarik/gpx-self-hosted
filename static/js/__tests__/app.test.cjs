@@ -629,7 +629,7 @@ describe('App Logic', () => {
             jest.useRealTimers();
         });
 
-        test('coordinate readout starts at map center, then selects map click coordinates and copies on click', async () => {
+        test('coordinate readout uses single-click targeting, copies selected coordinates, and keeps double-click zoom', async () => {
             jest.useFakeTimers();
             const writeText = jest.fn().mockResolvedValue();
             Object.defineProperty(window.navigator, 'clipboard', {
@@ -644,6 +644,7 @@ describe('App Logic', () => {
             expect(coordsReadout.disabled).toBe(false);
             expect(coordsReadout.dataset.state).toBe('center');
             expect(mapMock.on.mock.calls.some(([event]) => event === 'mousemove')).toBe(false);
+            expect(mapMock.on.mock.calls.some(([event]) => event === 'click')).toBe(true);
 
             mapMock.getCenter.mockReturnValueOnce({ lat: 58.7123456, lng: 25.1234567 });
             const moveEndHandler = mapMock.on.mock.calls.find(([event]) => event === 'moveend')[1];
@@ -653,21 +654,21 @@ describe('App Logic', () => {
             expect(coordsReadout.dataset.state).toBe('center');
 
             const clickHandler = mapMock.on.mock.calls.find(([event]) => event === 'click')[1];
-            clickHandler({ latlng: { lat: 58.3776251, lng: 26.7290062 } });
+            clickHandler({ latlng: { lat: 58.384321, lng: 26.736543 } });
 
-            expect(coordsReadout.textContent).toBe('58.377625, 26.729006');
-            expect(coordsReadout.dataset.state).toBe('center');
+            expect(coordsReadout.textContent).toBe('58.384321, 26.736543');
+            expect(coordsReadout.dataset.state).toBe('manual');
             expect(coordsReadout.disabled).toBe(false);
-            expect(mapMock.setView).toHaveBeenLastCalledWith([58.3776251, 26.7290062], 9);
 
-            const contextMenuHandler = mapMock.on.mock.calls.find(([event]) => event === 'contextmenu')[1];
+            const dblclickHandler = mapMock.on.mock.calls.find(([event]) => event === 'dblclick')[1];
             const preventDefault = jest.fn();
-            contextMenuHandler({
-                latlng: { lat: 58.384321, lng: 26.736543 },
+            dblclickHandler({
+                latlng: { lat: 58.3776251, lng: 26.7290062 },
                 originalEvent: { preventDefault }
             });
 
             expect(preventDefault).toHaveBeenCalled();
+            expect(mapMock.setView).toHaveBeenLastCalledWith([58.3776251, 26.7290062], 9);
             expect(coordsReadout.textContent).toBe('58.384321, 26.736543');
             expect(coordsReadout.dataset.state).toBe('manual');
 

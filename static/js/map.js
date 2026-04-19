@@ -299,23 +299,21 @@ function setupZoomSlider() {
     state.map.on('baselayerchange', syncSliderFromMap);
     state.map.on('moveend', syncCoordinateDisplayFromMapCenter);
     state.map.on('click', (event) => {
+        updateCoordinateDisplay(event?.latlng, 'manual');
+        resetCoordsReadout();
+    });
+    state.map.on('dblclick', (event) => {
         const latlng = event?.latlng;
         if (!latlng || !Number.isFinite(latlng.lat) || !Number.isFinite(latlng.lng)) {
             return;
         }
 
+        event?.originalEvent?.preventDefault?.();
         const currentZoom = typeof state.map?.getZoom === 'function' ? state.map.getZoom() : DEFAULT_MIN_ZOOM;
         const buttonStep = state.map?.options?.zoomDelta || MAP_OPTIONS.zoomDelta;
         const { min, max } = getZoomBounds();
         const nextZoom = clampZoom(currentZoom + buttonStep, min, max);
         state.map.setView([latlng.lat, latlng.lng], nextZoom);
-        updateCoordinateDisplay(latlng, 'center');
-        resetCoordsReadout();
-    });
-    state.map.on('contextmenu', (event) => {
-        event?.originalEvent?.preventDefault?.();
-        updateCoordinateDisplay(event?.latlng, 'manual');
-        resetCoordsReadout();
     });
 }
 

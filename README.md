@@ -109,9 +109,9 @@ gpx-self-host/
 *   **Detailed Stats**: Distance, Duration, Speed, Elevation Gain/Loss.
 *   **Light/Dark Theme Toggle**: Toggle the theme from the sidebar header; the selected mode is stored in `localStorage` and overrides system preference on future visits.
 *   **Multiple Layers**: Switch between OpenTopoMap, OpenStreetMap, and Maa-amet (Estonia); the default base layer is Maa-amet kaart, and OpenTopoMap supports zoom levels `0-17`. Note: `maaamet-foto` currently proxies through a `.png` tile path while the upstream serves JPEG, so cached responses can carry the wrong `Content-Type` until that mismatch is fixed.
-*   **Granular Zooming**: Bottom-center zoom slider with click-to-cycle speed presets (`Fast`, `Normal`, `Precise`) synchronized across +/- clicks, single-click map zoom, gesture snap speed, and wheel zoom behavior.
+*   **Granular Zooming**: Bottom-center zoom slider with click-to-cycle speed presets (`Fast`, `Normal`, `Precise`) synchronized across +/- clicks, double-click map zoom, gesture snap speed, and wheel zoom behavior.
 *   **Viewport BBox Copy**: Copy the current map viewport bounds as `west,south,east,north` decimal coordinates from the bottom map controls.
-*   **Coordinate Copy**: The bottom map controls keep showing the current map-center `lat, lng`; right-click any point to target that exact coordinate for copying, then click the readout itself to copy it.
+*   **Coordinate Copy**: The bottom map controls keep showing the current map-center `lat, lng`; click any point on the map to target that exact coordinate for copying, then click the readout itself to copy it.
 *   **Search & Filter**: Real-time filtering by name; activity chips; year-based grouping.
 *   **Multi-Track Mode**: Use the compact `Multi-select` control above the list to reveal per-row checkboxes and compare multiple tracks with distinct colors.
 *   **Marker Visibility Toggle**: Show/hide start and end markers to reduce clutter when many tracks are loaded.

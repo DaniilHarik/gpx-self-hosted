@@ -8,3 +8,4 @@
 - In the bottom map utility cluster, place the coordinate readout before the `bbox` action so the primary location-copy affordance comes first.
 - Seed the coordinate readout from the current map center on load instead of showing an empty placeholder.
 - For discoverability fixes in this app, do not solve a subtle-control problem by adding a bulky helper panel. Prefer compact, native-feeling controls that fit the existing sidebar rhythm.
+- In this app, keep coordinate targeting and zoom gestures separate: single-click updates the bottom coordinate readout, while double-click handles zoom.
