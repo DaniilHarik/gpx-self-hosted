@@ -98,8 +98,14 @@ export function exportGPX() {
         return;
     }
 
+    const exportedAt = new Date();
+
     let gpx = '<?xml version="1.0" encoding="UTF-8"?>\n';
     gpx += '<gpx version="1.1" creator="GPX Offline Viewer" xmlns="http://www.topografix.com/GPX/1/1">\n';
+    gpx += '  <metadata>\n';
+    gpx += '    <name>Drawn Track</name>\n';
+    gpx += `    <time>${exportedAt.toISOString()}</time>\n`;
+    gpx += '  </metadata>\n';
 
     state.drawnItems.eachLayer(function (layer) {
         if (layer instanceof L.Polyline) {
@@ -121,7 +127,7 @@ export function exportGPX() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `drawn-track-${new Date().toISOString().slice(0, 10)}.gpx`;
+    a.download = `drawn-track-${exportedAt.toISOString().slice(0, 10)}.gpx`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

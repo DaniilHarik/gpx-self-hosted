@@ -115,7 +115,7 @@ gpx-self-host/
 *   **Search & Filter**: Real-time filtering by name; activity chips; year-based grouping.
 *   **Multi-Track Mode**: Use the compact `Multi-select` control above the list to reveal per-row checkboxes and compare multiple tracks with distinct colors.
 *   **Marker Visibility Toggle**: Show/hide start and end markers to reduce clutter when many tracks are loaded.
-*   **Drawing & Export**: Draw new routes on the map and download them as GPX 1.1 with the standard Topografix namespace, plus export a high-resolution PNG snapshot of the current map view (tiles + visible overlays).
+*   **Drawing & Export**: Draw new routes on the map and download them as GPX 1.1 with the standard Topografix namespace and metadata block, plus export a high-resolution PNG snapshot of the current map view (tiles + visible overlays).
 
 ## Supported activities
 

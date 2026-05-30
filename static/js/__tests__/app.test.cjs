@@ -1187,6 +1187,8 @@ describe('App Logic', () => {
             const blobArg = global.URL.createObjectURL.mock.calls[0][0];
             const xml = await blobArg.text();
             expect(xml).toContain('<gpx version="1.1" creator="GPX Offline Viewer" xmlns="http://www.topografix.com/GPX/1/1">');
+            expect(xml).toMatch(/  <metadata>\n    <name>Drawn Track<\/name>\n    <time>\d{4}-\d{2}-\d{2}T[^<]+<\/time>\n  <\/metadata>/);
+            expect(xml.indexOf('  <metadata>')).toBeLessThan(xml.indexOf('  <trk>'));
             expect(xml).toContain('<trkpt lat="1" lon="2"></trkpt>');
             expect(xml).toContain('<trkpt lat="3" lon="4"></trkpt>');
             expect(xml).toContain('<wpt lat="5" lon="6"><name>Waypoint</name></wpt>');
