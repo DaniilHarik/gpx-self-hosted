@@ -66,7 +66,7 @@ Updated: 2026-03-29
   - Each row shows activity icon/chip, optional date parsed from filename prefix, cleaned title (underscores→spaces, dashes kept), optional nested folder label.
 - Drawing & export
   - Leaflet Draw toolbar available with polyline + marker tools; drawn items kept in a feature group.
-  - Export button in the draw toolbar exports current drawings to a GPX download (trk segments for polylines, waypoints for markers); button disabled with correct aria state when empty.
+  - Export button in the draw toolbar exports current drawings to a GPX 1.1 download with the default Topografix GPX namespace (trk segments for polylines, waypoints for markers); button disabled with correct aria state when empty.
   - Separate toolbar button exports the current map viewport to a high-resolution PNG (2x canvas scale) including rendered tiles and visible overlays.
 - Error handling & observability
   - `/tiles` validates provider token plus numeric `z/x/y` and `.png|.jpg` extension; malformed or traversal-like paths → 400; unknown provider → 404; upstream failure after retries → 502.

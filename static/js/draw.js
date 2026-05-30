@@ -99,7 +99,7 @@ export function exportGPX() {
     }
 
     let gpx = '<?xml version="1.0" encoding="UTF-8"?>\n';
-    gpx += '<gpx version="1.1" creator="GPX Offline Viewer">\n';
+    gpx += '<gpx version="1.1" creator="GPX Offline Viewer" xmlns="http://www.topografix.com/GPX/1/1">\n';
 
     state.drawnItems.eachLayer(function (layer) {
         if (layer instanceof L.Polyline) {
