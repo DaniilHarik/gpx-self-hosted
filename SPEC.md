@@ -1,6 +1,6 @@
 # Self-Hosted GPX Viewer — Product Spec
 
-Updated: 2026-03-29
+Updated: 2026-06-06
 
 ## Product Overview
 - Purpose: offline-friendly GPX archive you can run locally to browse, filter, and inspect personal tracks on a map without uploading them to a third party.
@@ -98,9 +98,14 @@ See [SECURITY.md](SECURITY.md) for the full hardening roadmap. Key focus areas i
 - **Auto-refresh GPX index**: optional file watcher to refresh the list when files change (no full page reload), with a manual "rescan" button fallback.
 - **Saved filters and views**: persist search text, activity chips, Plans/Activities toggle, and multi-track mode in `localStorage`, with a one-click reset.
 - **Quick compare mode**: show combined stats (distance, elevation, duration) for multi-selected tracks plus a per-track mini legend for easier side-by-side comparisons.
+- **Track Library Health Check**: detect malformed GPX files, missing timestamps/elevation, duplicate filenames, suspicious zero-distance tracks, and large recording gaps so users can keep their archive clean.
+- **Aggregate Stats Dashboard**: summarize distance, elevation gain, duration, and track counts by year and activity for quick personal reporting.
+- **Favorites and Collections**: save named groups of tracks for repeated comparison or trip planning without modifying the original GPX files.
+- **Track Details Drawer**: show metadata such as bounds, first/last timestamp, waypoint count, segment count, raw path, and quick copy actions for the selected track.
+- **Similarity and Duplicate Route Detection**: identify likely duplicate or near-duplicate tracks using distance, bounds, and start/end proximity.
 - **Date range filtering**: simple start/end date inputs that constrain the list without additional dependencies.
-- **Offline cache utilities**: UI for cache size, clear-by-provider, and "warm favorite area" presets (user-defined bboxes saved locally).
-- **Shareable map links**: encode selected tracks, map center/zoom, and active provider into the URL hash for easy bookmarking/sharing within a trusted network.
+- **Offline cache utilities and readiness panel**: UI for cache size, clear-by-provider, recent hit/miss rate, current-viewport offline readiness, and "warm favorite area" presets (user-defined bboxes saved locally).
+- **Shareable map links / URL Hash Restore**: encode selected tracks, map center/zoom, active view, and active provider into the URL hash for easy bookmarking/sharing within a trusted network.
 - **Track thumbnails**: generate lightweight SVG mini-maps (client-side) for list rows to make scanning faster without extra dependencies.
 - **Folder-level actions**: allow selecting an entire folder (or year group) to load as a multi-track set, with one-click clear.
 - **Stats export**: download a CSV/JSON summary for selected tracks (distance, duration, elevation, date, activity).
@@ -108,7 +113,9 @@ See [SECURITY.md](SECURITY.md) for the full hardening roadmap. Key focus areas i
 - **Custom activity mapping**: allow a small mapping file (or UI) to translate folder names into icons/colors and display names.
 - **Route snapping hint**: optional toggle to visualize average direction arrows or start/end markers for clarity in dense areas.
 - **Tile provider health**: surface a small status indicator showing recent upstream error rates and a quick retry.
-- **Lightweight annotations**: let users add text notes to a track (stored locally in a sidecar JSON) without editing the GPX.
+- **Lightweight annotations / Archive Notes**: let users add text notes and tags to a track (stored locally in a sidecar JSON) without editing the GPX.
+- **Drawn Route Metadata Before Export**: let users set GPX name, activity/type, description, and filename before downloading drawn routes.
+- **Measurement Mode**: measure distance between ad hoc map points without creating a saved drawing or GPX export.
 - **Animated Track Playback**: Visual "replay" of the track on the map with adjustable speed and a progress slider.
 - **Speed/Grade Heatmaps**: Toggleable overlay that colors the track polyline based on instantaneous speed or incline (slope).
 - **Drag-and-Drop Upload**: Overlay that allows users to drop `.gpx` files or folders directly into the browser to "upload" (save) them to the backend `data/` directory.
