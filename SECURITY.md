@@ -1,29 +1,46 @@
-# Security Notes - gpx-self-host
+# Security and Reliability
 
-Updated: 2026-03-29
+Updated: 2026-07-24
 
-## Introduction
+## Deployment model
 
-- **Local use**: This tool is designed for a local machine or trusted home network. It does not include authentication.
-- **Privacy**: Your GPX data stays on your machine. The only outgoing calls are tile requests to the configured providers.
-- **Tile provider visibility**: When standard OpenStreetMap tiles are proxied online, that provider will see an app-specific `User-Agent` from the backend and may also receive the browser `Referer` (for example `http://localhost:8080/`) when the browser sends one.
+This application is designed for a local machine or trusted network. It has no
+authentication or authorization and should not be exposed directly to the
+public internet.
 
-## Summary of Risks
+GPX files remain on the host, but the server exposes the configured data
+directory under `/data/`. Online map use sends tile requests to the configured
+providers. The browser also loads frontend dependencies from third-party CDNs.
 
-- **Tile request validation**: `/tiles/{provider}/{z}/{x}/{y}.(png|jpg)` rejects malformed provider names, non-numeric coordinates, and unsupported extensions before proxying.
-- **Tile provider compliance**: Requests to the built-in `openstreetmap` provider carry a stable application `User-Agent`, and proxied browser requests forward a valid `Referer` when available so standard OpenStreetMap tiles can distinguish legitimate web traffic.
-- **Tile proxy/cache**: Concurrent requests for the same tile can still trigger redundant upstream fetches and last-writer-wins cache races, even though cache writes are now finalized atomically.
-- **Resource limits**: No global controls for tile download concurrency or disk usage.
-- **Data directory exposure**: `/data/` is served via `http.FileServer`, which can expose directory listings and follow symlinks out of the data directory.
-- **Third-party assets**: Frontend scripts/styles use SRI, but are still fetched from CDNs at runtime.
+## Existing controls
 
-## Reporting a Vulnerability
+- Tile routes accept only a safe provider token, numeric `z/x/y` components,
+  and `.png` or `.jpg`.
+- Tile downloads use configured timeouts and retry limits.
+- Cache writes use a temporary file and atomic rename to avoid publishing
+  partial downloads.
+- OpenStreetMap requests use an application-specific `User-Agent`; a valid
+  browser `Referer` is forwarded when present.
+- Offline mode prevents upstream tile requests.
 
-If you discover a security issue, please open a private report via GitHub Security Advisories.
-If private reporting is not available, open a standard issue with minimal reproduction details and mark it as security-sensitive.
+## Known risks
 
-## Known Issues
+- `/data/` uses `http.FileServer`, which permits directory listings and can
+  follow symlinks outside the configured data directory.
+- Concurrent cache misses for the same tile are not deduplicated and can race
+  on the final cache write.
+- The tile cache has no quota, TTL, or eviction policy.
+- Maa-amet Foto can cache JPEG content under a `.png` request path, causing an
+  incorrect `Content-Type` on cached responses.
+- Runtime CDN dependencies add availability and supply-chain exposure and
+  prevent a fully disconnected first page load.
 
-- **[High] Concurrency control for tile downloads**: Multiple requests for the same tile can trigger redundant fetches and potential race conditions. 
-- **[Medium] Cache Quota**: Adding a maximum cache size and eviction policy (LRU) to prevent disk exhaustion.
-- **[Medium] Data directory hardening**: Ensuring the `/data/` handler only serves `.gpx` files, avoids directory listings, and does not follow symlinks out of the directory.
+Use a firewall or an authenticated reverse proxy if the service is reachable
+beyond a trusted host. Review configured tile providers and their usage terms
+before deployment.
+
+## Reporting a vulnerability
+
+Use GitHub Security Advisories for private reports. If private reporting is not
+available, open an issue with minimal reproduction details and mark it as
+security-sensitive.

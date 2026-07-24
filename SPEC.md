@@ -1,131 +1,119 @@
-# Self-Hosted GPX Viewer — Product Spec
+# Self-Hosted GPX Viewer Product Spec
 
-Updated: 2026-06-06
+Updated: 2026-07-24
 
-## Product Overview
-- Purpose: offline-friendly GPX archive you can run locally to browse, filter, and inspect personal tracks on a map without uploading them to a third party.
-- Form factor: single Go binary serving a static SPA (Leaflet) plus a tile proxy/cache for base maps.
-- Success: fast startup (<1s after `go run`), instant file discovery on refresh, smooth map interaction, and exportable drawn routes.
-- Audience note: this spec is intended for contributors and maintainers; end users should refer to `README.md` for setup and usage.
+## Scope
 
-## Target Users and Use Cases
-- Outdoor enthusiasts who manage a personal GPX library and want a privacy-preserving viewer.
-- Route planners who need to sketch quick polylines/waypoints and export as GPX.
+The product is a privacy-oriented GPX archive for a local machine or trusted
+network. A Go server discovers GPX files, serves a vanilla JavaScript map UI,
+proxies base-map tiles, and caches GPX metadata and tiles on disk.
 
-## User Experience
-- Layout: left sidebar with search + activity chips; right map canvas with floating stats panel.
-- File browsing: nested folders are shown; activity is inferred from the first folder under `data/Activities/`.
-- Interaction:
-  - Type to filter by name or relative path; multi-select activity chips; the “All” chip resets activity filtering.
-  - View toggle: `Activities | Plans`. Tracks under `data/Plans/` are excluded from Activities and only appear in the Plans view.
-  - **Theme**: Explicit Light/Dark toggle in the sidebar header; selection persists in `localStorage` and overrides system preference.
-  - Initial viewport: map loads centered on Estonia (`58.60, 25.01`) at zoom level `8` before any track is selected.
-  - Click a track to load (exclusive select); map auto-zooms to its bounds; info panel fills with stats.
-  - **Multi-Track Mode**: Toggle from a compact `Multi-select` control above the file list; active mode adds checkboxes to list items for additive selection; tracks are color-coded (Cycle: Blue → Red → Green → Others) with visual indicators in the list.
-  - **Start/End Marker Toggle**: Sidebar header includes a control to show/hide start and end markers across loaded tracks to reduce clutter in dense multi-track views.
-  - **Granular Zooming**: A bottom-center zoom slider supports quarter-step increments (`0.25`), while +/- controls, double-click map zoom, gesture snap step, and wheel zoom speed can be changed via a click-to-cycle speed button (`Fast`, `Normal`, `Precise`); all stay synchronized.
-  - **Viewport BBox Copy**: The bottom-center map controls include a `BBox` button that copies the current viewport bounds as `west,south,east,north` decimal coordinates for reuse in cache tooling or other map workflows.
-  - **Coordinate Copy**: The bottom-center map controls include a coordinate readout seeded from the current map center on load and kept in sync with the current viewport center. Clicking the map temporarily targets a decimal `lat, lng` pair for that exact point, and clicking the readout copies the currently shown value for Google Maps or other tools.
-  - Switch base layers via the map control (OpenStreetMap, OpenTopoMap, Maa-amet kaart/foto; defaults to Maa-amet kaart). Selection persists in `localStorage`.
-  - Draw polylines/markers on the map and export current drawings as a GPX download (button disabled until something is drawn).
-  - Draw toolbar includes a high-resolution image export that downloads the current map viewport as PNG, including visible tracks, drawn vectors, and markers.
+The primary use cases are:
 
-## Functional Requirements
-- Startup/Config
-  - Configuration sources: CLI flags, `config.json`, and environment variables (`GPX_SELF_HOST_*`); Precedence: CLI > JSON > ENV > Defaults.
-  - Options: `-port`, `-static-dir`, `-data-dir`, `-cache-dir`, `-client-timeout`, `-max-retries`, `-offline`; sensible defaults (`:8080`, `./static`, `./data`, `./cache`, `10s`, `3`, `false`).
-  - Tile providers are defined in config (name, URL template, TMS flag, attribution, zoom min/max); default set includes OpenStreetMap, OpenTopoMap (zoom `0-17`), and two Maa-amet layers; can be overridden via `config.json`.
-- UI Theming
-  - Theme supports explicit `light`/`dark` modes; default derives from `prefers-color-scheme` if no saved preference exists.
-  - Theme preference persists client-side in `localStorage` (`gpx-self-hosted-theme`).
-- Data ingestion & API
-  - Backend walks `data/Activities/` and `data/Plans/` (nested allowed), returns all `.gpx` files case-insensitively via `GET /api/gpx` with `{name, path, relativePath}`; `path` is fetchable under `/data/`.
-  - Static assets served from `/` using `static` dir; raw GPX files exposed under `/data/`.
-  - Tile config endpoint `GET /api/tile-config` mirrors providers and declares the initial provider key (`Cache-Control: no-store`).
-  - Status endpoint `GET /api/status` returns cache hit/miss/error counters since process start for lightweight health checks (`Cache-Control: no-store`).
-  - Map tiles & caching
-    - Frontend requests tiles through `/tiles/{provider}/{z}/{x}/{y}.(png|jpg)`; server swaps `{z,x,y}` into the provider template and proxies to upstream.
-    - Tile cache stored under `cache/tiles/<provider>/<z>/<x>/<y>.<ext>` where `<ext>` matches the request (today the SPA always uses `.png`).
-    - Requests to the built-in `openstreetmap` provider identify the proxy with a stable application `User-Agent`; when the browser sends a page `Referer`, the proxy forwards it upstream so standard OpenStreetMap tiles can distinguish proxied web traffic.
-    - Known issue: providers that serve JPEG upstream (e.g. Maa-amet Foto) can be cached/served under a `.png` request path, which can lead to incorrect `Content-Type` headers when serving from disk.
-    - Offline mode (`-offline`): cache-only serving; cache misses return 404 without calling upstream or writing to disk. Assumes cache warmed or pre-seeded.
-    - Upstream 404 yields 404 without caching; repeated requests to cached tiles must not call upstream.
-    - Cache hit/miss/error counters are updated on each `/tiles` request; current cache size is logged on startup.
-- Track visualization & stats
-  - Uses Leaflet + leaflet-gpx; GPX layer fitted to bounds on load.
-  - Start/end markers can be hidden via a UI toggle; waypoint markers remain visible.
-  - Stats shown: distance (km), duration (prefers moving time), date (start timestamp localised), moving speed (km/h), elevation gain/loss (smoothed to ignore micro-noise).
-  - Info panel hidden until a track is loaded; updates per selection.
-- Filtering & list rendering
-  - Files sorted by date (filename prefix) descending; list items visually grouped by year with separators.
-  - Search filters by filename or relative path (case-insensitive).
-  - Activity chips: auto-generated from activities (derived from the first folder under `Activities/`); multi-select supported; the “All” chip is active when no activity filters are selected and `Plans` is excluded.
-  - Separate view: `data/Plans/` is treated as the Plans view (not an activity chip), and the view toggle is disabled when no plan files exist.
-  - Plans view: activity chips are hidden; items are sorted alphabetically by relative path; year grouping is disabled.
-  - Known activity icons: Backpacking (`backpacking`), Speed Hiking (`speed hiking`), Bikepacking (`bikepacking`), Gravel (`gravel`), MTB (`mtb`, `mountain biking`, `mountain_biking`), Ice Skating (`iceskating`, `ice skating`, `ice-skating`, `ice_skating`), Sailing (`sailing`), Overlanding (`overlanding`), Flights (`flight`, `flights`); matching is case-insensitive and unknown activities fall back to a generic route icon.
-  - Each row shows activity icon/chip, optional date parsed from filename prefix, cleaned title (underscores→spaces, dashes kept), optional nested folder label.
-- Drawing & export
-  - Leaflet Draw toolbar available with polyline + marker tools; drawn items kept in a feature group.
-  - Export button in the draw toolbar exports current drawings to a GPX 1.1 download with the default Topografix GPX namespace and metadata block (trk segments for polylines, waypoints for markers); button disabled with correct aria state when empty.
-  - Separate toolbar button exports the current map viewport to a high-resolution PNG (2x canvas scale) including rendered tiles and visible overlays.
-- Error handling & observability
-  - `/tiles` validates provider token plus numeric `z/x/y` and `.png|.jpg` extension; malformed or traversal-like paths → 400; unknown provider → 404; upstream failure after retries → 502.
-  - `/api/gpx` errors return 500 with message.
-  - Server logs cache hits/misses and upstream attempts.
+- Browse recorded tracks without uploading them to a third party.
+- Keep planned routes separate from completed activities.
+- Compare several tracks on one map.
+- Draw simple routes or waypoints and export them as GPX.
 
-## Non-Functional Requirements
-- Privacy/offline: no third-party upload of GPX; only outbound calls are tile requests to configured providers (or none when `-offline` is set).
-- Performance: tile fetch timeout configurable; cache prevents redundant upstream calls after tiles are cached, though concurrent cache misses can still trigger duplicate upstream fetches; UI stays responsive while filtering large lists.
-- Footprint: Go stdlib backend; frontend relies on CDN Leaflet/Leaflet Draw/Font Awesome; runs without database.
-- Compatibility: desktop and mobile map interaction; works on modern browsers.
-- Testing: Go unit tests for config, GPX listing, tile proxy, caching; Jest + jsdom tests for UI logic, filters, stats formatting, GPX export.
-- Frontend coverage: `npm test` collects coverage from `static/js/` and outputs text, HTML, and lcov reports to `coverage/`.
+Setup and configuration documentation belong in `README.md`.
 
-## Constraints and Open Questions
-- Upstream tile provider rate limits and legal terms must be observed; no throttling built in.
-- Cache eviction/TTL not implemented—manual clearing required; should a size cap be enforced?
-- No upload UI; users must place files in the `data` directory and refresh—do we need drag-and-drop or live reload?
-- Authentication/ACLs are absent; intended for trusted local networks—any need for basic auth?
-- Raw file serving remains permissive (`/data/` directory listings and symlink handling); avoid exposing the app to untrusted networks until file-serving restrictions are hardened. Tile cache writes are now atomic (temp file + rename), so partial writes no longer corrupt the cache.
-- Historical note: a "prewarm/download current view" tile cache feature was tried but proved fragile and was removed.
+## Content model
 
-## Security & Reliability (Summary)
-See [SECURITY.md](SECURITY.md) for the full hardening roadmap. Key focus areas include tile proxy parameter validation and concurrency control for downloads. Tile cache writes are now atomic (temp file + rename).
+- Activity tracks are `.gpx` files below `data/Activities/`.
+- Plans are `.gpx` files below `data/Plans/`.
+- Nested folders are supported.
+- An activity is derived from the first folder below `Activities/`.
+- File matching is case-insensitive.
+- The API exposes each item with `name`, `path`, `relativePath`, and optional
+  cached metadata.
 
-## Feature Roadmap Ideas
+## Browsing
 
-### Suggested
-- **Auto-refresh GPX index**: optional file watcher to refresh the list when files change (no full page reload), with a manual "rescan" button fallback.
-- **Saved filters and views**: persist search text, activity chips, Plans/Activities toggle, and multi-track mode in `localStorage`, with a one-click reset.
-- **Quick compare mode**: show combined stats (distance, elevation, duration) for multi-selected tracks plus a per-track mini legend for easier side-by-side comparisons.
-- **Track Library Health Check**: detect malformed GPX files, missing timestamps/elevation, duplicate filenames, suspicious zero-distance tracks, and large recording gaps so users can keep their archive clean.
-- **Aggregate Stats Dashboard**: summarize distance, elevation gain, duration, and track counts by year and activity for quick personal reporting.
-- **Favorites and Collections**: save named groups of tracks for repeated comparison or trip planning without modifying the original GPX files.
-- **Track Details Drawer**: show metadata such as bounds, first/last timestamp, waypoint count, segment count, raw path, and quick copy actions for the selected track.
-- **Similarity and Duplicate Route Detection**: identify likely duplicate or near-duplicate tracks using distance, bounds, and start/end proximity.
-- **Date range filtering**: simple start/end date inputs that constrain the list without additional dependencies.
-- **Offline cache utilities and readiness panel**: UI for cache size, clear-by-provider, recent hit/miss rate, current-viewport offline readiness, and "warm favorite area" presets (user-defined bboxes saved locally).
-- **Shareable map links / URL Hash Restore**: encode selected tracks, map center/zoom, active view, and active provider into the URL hash for easy bookmarking/sharing within a trusted network.
-- **Track thumbnails**: generate lightweight SVG mini-maps (client-side) for list rows to make scanning faster without extra dependencies.
-- **Folder-level actions**: allow selecting an entire folder (or year group) to load as a multi-track set, with one-click clear.
-- **Stats export**: download a CSV/JSON summary for selected tracks (distance, duration, elevation, date, activity).
-- **Smart search operators**: basic tokens like `activity:`, `year:`, `minDistance:` to refine large libraries without new UI.
-- **Custom activity mapping**: allow a small mapping file (or UI) to translate folder names into icons/colors and display names.
-- **Route snapping hint**: optional toggle to visualize average direction arrows or start/end markers for clarity in dense areas.
-- **Tile provider health**: surface a small status indicator showing recent upstream error rates and a quick retry.
-- **Lightweight annotations / Archive Notes**: let users add text notes and tags to a track (stored locally in a sidecar JSON) without editing the GPX.
-- **Drawn Route Metadata Before Export**: let users set GPX name, activity/type, description, and filename before downloading drawn routes.
-- **Measurement Mode**: measure distance between ad hoc map points without creating a saved drawing or GPX export.
-- **Animated Track Playback**: Visual "replay" of the track on the map with adjustable speed and a progress slider.
-- **Speed/Grade Heatmaps**: Toggleable overlay that colors the track polyline based on instantaneous speed or incline (slope).
-- **Drag-and-Drop Upload**: Overlay that allows users to drop `.gpx` files or folders directly into the browser to "upload" (save) them to the backend `data/` directory.
-- **Waypoint Browser**: A dedicated sidebar tab or modal to browse, search, and "teleport" to waypoints within the selected GPX files.
-- **Metric/Imperial Toggle**: User-facing setting to switch all stats (distance, speed, elevation) between Kilometers/Meters and Miles/Feet.
-- **Public/Private Toggle**: For users who might eventually expose the app to a network, a way to mark specific folders/files as "private" (hidden from the index unless authorized).
+- The sidebar contains search, an `Activities | Plans` view switch, filters, the
+  track list, theme control, marker control, and multi-select control.
+- Search matches the filename or relative path, case-insensitively.
+- Activities are sorted by a date prefix in the filename, newest first, and
+  grouped by year.
+- Activity filters support multiple selections. `All` clears them.
+- Plans are excluded from activity filters, sorted alphabetically by relative
+  path, and are not grouped by year.
+- The Plans control is disabled when no plan files exist.
+- Known activity names receive custom icons; unknown names use a route icon.
+- A row shows an icon, optional date, cleaned title, and optional nested folder
+  label.
 
-### Rejected
-- **Interactive Elevation Profile**: Replace the static stats with an interactive chart (distance vs elevation) using a library like Chart.js or D3. Hovering over the graph should show the corresponding location on the map.
-- **Track Editing Suite**:
-  - **Crop/Trimming**: Simple UI to remove start/end points (e.g., for privacy or removing "forgot to stop recording" segments).
-  - **Merge/Split**: Tools to combine segments or break a long track into multiple files.
-- **Photo Integration**: Display georeferenced photos on the map. If a GPX file has associated photos (e.g., in the same directory or linked via waypoints), show them as clickable thumbnails.
+## Track display
+
+- The map starts at `58.60, 25.01`, zoom `8`.
+- Selecting a track loads its GPX layer, fits its bounds, and opens its stats.
+- Single-track mode keeps one track loaded.
+- Multi-track mode exposes row checkboxes and permits additive selection.
+- Loaded tracks use distinct colors and matching list indicators.
+- The focused track drives the stats panel.
+- Start and end markers can be hidden across loaded tracks; GPX waypoints remain
+  visible.
+- Stats include distance, duration, local start date, moving speed, and smoothed
+  elevation gain/loss. Duration prefers moving time.
+
+## Map controls
+
+- The default base layer is Maa-amet Kaart.
+- The default provider set includes OpenStreetMap, OpenTopoMap, Maa-amet Kaart,
+  and Maa-amet Foto.
+- Base-layer choice persists in `localStorage`.
+- Explicit light and dark themes are available. The saved theme overrides the
+  system preference and is initialized before rendering to avoid FOUC.
+- The bottom controls include `-` and `+`, a quarter-step zoom slider, the
+  current zoom value, zoom speed, coordinate readout, and `bbox`.
+- `Fast`, `Normal`, and `Precise` synchronize button, double-click, gesture snap,
+  and wheel zoom behavior.
+- The coordinate readout starts from the map center. A single map click targets
+  a point; clicking the readout copies the displayed `lat, lng`.
+- `bbox` copies viewport bounds as `west,south,east,north`.
+
+## Drawing and export
+
+- Leaflet Draw exposes polyline and marker tools.
+- GPX export is disabled until a drawing exists.
+- Export produces GPX 1.1 with the Topografix namespace and metadata: polylines
+  become track segments and markers become waypoints.
+- Map image export produces a 2x PNG of the current viewport, including visible
+  tiles, tracks, drawings, and markers.
+
+## Server behavior
+
+- Configuration precedence is CLI, JSON, environment variables, then defaults.
+- `GET /api/gpx` lists activity tracks and plans.
+- `GET /api/tile-config` returns client-safe provider settings, the initial
+  provider, and offline state with `Cache-Control: no-store`.
+- `GET /api/status` returns process-lifetime tile cache counters with
+  `Cache-Control: no-store`.
+- `/data/` serves source GPX files.
+- `/tiles/{provider}/{z}/{x}/{y}.(png|jpg)` validates the provider token, numeric
+  coordinates, and extension before accessing the cache or upstream.
+- Cached tiles retain the requested extension.
+- Online cache misses are retried up to the configured limit. Upstream `404`
+  responses are not cached.
+- Offline mode never contacts upstream providers; a cache miss returns `404`.
+- Tile cache writes use a temporary file and atomic rename.
+- OpenStreetMap requests use an application `User-Agent` and forward a valid
+  browser `Referer` when present.
+
+## Quality requirements
+
+- GPX data is not uploaded to third parties.
+- The backend uses the Go standard library; the frontend remains framework-free.
+- The UI supports current desktop and mobile browsers.
+- Go tests cover configuration, handlers, GPX discovery/parsing/cache, server
+  routing, and tile proxy/cache behavior.
+- Jest and jsdom tests cover frontend behavior. Coverage is collected from
+  `static/js/`.
+
+## Known limits
+
+- Browser dependencies are loaded from CDNs, so offline tile mode does not make
+  the initial page load fully disconnected.
+- File changes require a browser refresh; there is no upload or live-rescan UI.
+
+See [SECURITY.md](SECURITY.md) for deployment constraints and known security or
+reliability risks.

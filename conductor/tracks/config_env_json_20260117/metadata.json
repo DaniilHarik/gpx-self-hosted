@@ -1,8 +1,0 @@
-{
-  "track_id": "config_env_json_20260117",
-  "type": "feature",
-  "status": "new",
-  "created_at": "2026-01-17T12:00:00Z",
-  "updated_at": "2026-01-17T12:00:00Z",
-  "description": "Implement env/JSON config support to complement CLI flags"
-}

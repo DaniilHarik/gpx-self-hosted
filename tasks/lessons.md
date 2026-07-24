@@ -10,3 +10,4 @@
 - For discoverability fixes in this app, do not solve a subtle-control problem by adding a bulky helper panel. Prefer compact, native-feeling controls that fit the existing sidebar rhythm.
 - In this app, keep coordinate targeting and zoom gestures separate: single-click updates the bottom coordinate readout, while double-click handles zoom.
 - When making GPX compatibility fixes for Garmin Connect, verify the whole GPX 1.1 document structure, including the default namespace and metadata block, instead of patching only the first reported missing field.
+- Before removing an unreferenced operational reference, confirm it is not still used manually; removal of the related automated feature is not sufficient evidence that the reference is obsolete.

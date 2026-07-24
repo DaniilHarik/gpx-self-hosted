@@ -1,30 +1,17 @@
-# Contributing to GPX Self-Hosted
+# Contributing
 
-## AI-Native Development
+Use GitHub Issues for bug reports and feature requests. Keep pull requests
+focused on one change.
 
-This project heavily utilizes AI coding assistants for development. 
+## Development
 
-*   **Iterative AI workflow**: The focus is on simple client/server architecture and clear constraints, allowing AI to handle the bulk of implementation and testing.
-*   **Documentation**: A detailed `SPEC.md` and `SECURITY.md` are provided to provide context for both human and AI collaborators.
-*   **Tests**: Comprehensive Go and Jest tests are used to ensure stability across AI-driven iterations.
+1. Follow the setup in [README.md](README.md).
+2. Create a branch from `main`.
+3. Add or update tests for behavior changes.
+4. Run `go test ./...` and `npm test`.
+5. Update `SPEC.md` for UI or behavioral changes, `README.md` for user-facing
+   setup or configuration changes, and `SECURITY.md` when the risk model changes.
 
-## How to Contribute
-
-### Bug Reports & Feature Requests
-Please use GitHub Issues to report bugs or suggest new features. 
-
-### Development
-1.  **Fork the repository** and create your branch from `main`.
-2.  **Run tests**: Ensure `go test ./...` and `npm test` pass.
-3.  **Update documentation**: If you're adding a feature, please update `SPEC.md`.
-
-### Pull Requests
-- Keep PRs focused and modular.
-- Include/update tests for any logic changes.
-- If you used AI to help with your contribution, feel free to mention it!
-
-## Development Setup
-
-1. Install [Go](https://go.dev/dl/).
-2. Run `npm install` for frontend tests.
-3. Start the dev server: `./run.sh`.
+Go code should use the standard library where practical and be formatted with
+`gofmt`. Frontend code should remain framework-free unless a broader
+architecture change is agreed first.

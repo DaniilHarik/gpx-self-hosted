@@ -1,86 +1,56 @@
 # Agent Guide
 
-## Project
-Self-hosted GPX viewer with a Go backend, vanilla JS frontend, and on-disk tile caching.
+## Start here
 
-## Non-negotiables
-- When a feature is changed or added, always update `SPEC.md`.
-- Always review and update tests when features change.
+- Read `SPEC.md` before changing product behavior or UI.
+- Read `README.md` for setup, architecture, and configuration.
+- Read `SECURITY.md` for security and reliability work.
+- Review `tasks/lessons.md` for relevant project-specific corrections.
+- Inspect the worktree before editing and preserve unrelated changes.
 
-## Key files
-- `SPEC.md` – Product requirements and UX scope.
-- `README.md` – Architecture, setup, and flags.
-- `cmd/gpx-self-host/` – CLI entrypoint.
-- `internal/` – Config, handlers, models, server, and services.
-- `static/` – HTML/JS/CSS frontend.
-- `data/` – GPX files (activities and plans).
-- `cache/tiles/` – Proxied map tiles cache.
+## Change requirements
 
+- Update or add tests whenever behavior changes.
+- Update `SPEC.md` for UI or behavioral changes.
+- Update `README.md` for user-facing features, setup, or configuration changes.
+- Update `SECURITY.md` when security or reliability risks change.
+- Add a concise rule to `tasks/lessons.md` after a user correction.
+- Do not update product docs for a behavior-preserving internal cleanup unless
+  the existing docs are inaccurate.
+
+## Architecture
+
+- Go standard-library backend: `cmd/gpx-self-host/` and `internal/`.
+- Vanilla JavaScript frontend: `static/`.
+- Activity tracks: `data/Activities/`; plans: `data/Plans/`.
+- Tile cache: `cache/tiles/`; GPX metadata cache: `cache/gpx_metadata.json`.
+- Multi-track state: `isMultiTrackMode` in `static/js/state.js`.
+- Theme initialization stays inline in `static/index.html` to prevent FOUC;
+  theme behavior and persistence live in `static/js/map.js`.
 
 ## Commands
-- `./run.sh` or `go run ./cmd/gpx-self-host` runs the server (IMPORTANT for visual testing do not start dev server, it is already running on port 8080).
-- `go test ./...` runs Go tests.
-- `npm test` runs frontend tests (Jest + jsdom).
 
-## Conventions
-- Prefer Go standard library; avoid heavyweight JS frameworks.
-- Use `log/slog` for structured logging; avoid `fmt.Printf` and `log.Printf`
-  for server logs.
-- Validate all external inputs and handle errors explicitly.
-- Theme initialization lives inline in `static/index.html` to prevent FOUC;
-  toggle logic and persistence live in `static/js/map.js`.
-- Update `README.md` for user-facing changes (flags, features).
-- Update `SPEC.md` for UI or behavioral changes.
-- Update `SECURITY.md` when addressing security or reliability risks.
+- Run: `./run.sh` or `go run ./cmd/gpx-self-host`.
+- Backend tests: `go test ./...`.
+- Frontend tests: `npm test`.
+- Before visual testing, check `http://localhost:8080/` and reuse a reachable
+  server. Start one only when needed.
 
-## Repo hygiene
-- Do not commit `data/`, `cache/`, `node_modules/`, or `.gocache/` contents
-  (except the two example GPX files under `data/`).
-- Guard against path traversal and unsafe file access when handling user input;
-  use `filepath.Clean` and validate numeric path components.
-- Be careful with concurrent file writes in the tile proxy.
+## Conventions and safety
 
-## Feature specifics
-- Multi-track mode: `isMultiTrackMode` in `static/js/state.js`.
-- Plans view: `data/Plans/` is handled separately from `data/Activities/`.
+- Prefer the Go standard library and avoid heavyweight frontend frameworks.
+- Use `log/slog` for structured server logs.
+- Validate external input and handle errors explicitly.
+- For filesystem access, prove the resolved path remains under its configured
+  root; `filepath.Clean` alone is not a containment check.
+- Validate tile provider and numeric path components before building cache paths.
+- Keep tile writes atomic and account for concurrent requests for the same tile.
+- Do not commit generated `data/`, `cache/`, `node_modules/`, `.gocache/`, or
+  coverage contents. Only the two example GPX files under `data/` are tracked.
 
-## Technical details
-- Tile cache keeps original extension; mismatches can cause incorrect
-  `Content-Type` when serving cached JPEGs as `.png`.
-- Tile downloads are not synchronized; concurrent requests can race on writes.
+## Verification
 
-# Workflow Orchestration
-
-- Read `SPEC.md` first for requirements before changing behavior.
-- Check `README.md` for architecture, setup, and command guidance.
-
-## Plan Mode Default
-- Enter plan mode for ANY non-trivial task (3+ steps or architectural decisions)
-- If something goes sideways, STOP and re-plan immediately – don't keep pushing
-- Use plan mode for verification steps, not just building
-- Write detailed specs upfront to reduce ambiguity
-
-## Self-Improvement Loop
-- After ANY correction from the user: update `tasks/lessons.md` with the pattern
-- Write rules for yourself that prevent the same mistake
-- Ruthlessly iterate on these lessons until mistake rate drops
-- Review lessons at session start for relevant project
-
-## Verification Before Done
-- Never mark a task complete without proving it works
-- Diff behavior between main and your changes when relevant
-- Ask yourself: "Would a staff engineer approve this?"
-- Run tests
-
-## Demand Elegance (Balanced)
-- For non-trivial changes: pause and ask "is there a more elegant way?"
-- If a fix feels hacky: "Knowing everything I know now, implement the elegant solution"
-- Skip this for simple, obvious fixes – don't over-engineer
-- Challenge your own work before presenting it
-
-## Core Principles
-
-- **Capture Lessons**: Update `tasks/lessons.md` after corrections
-- **Simplicity First**: Make every change as simple as possible. Impact minimal code.
-- **No Laziness**: Find root causes. No temporary fixes. Senior developer standards.
-- **Minimal Impact**: Changes should only touch what's necessary. Avoid introducing bugs.
+- Run the tests relevant to the changed surface.
+- For non-trivial changes, run both `go test ./...` and `npm test`.
+- For visual changes, verify the rendered app, not only the source.
+- Review the final diff and run `git diff --check`.

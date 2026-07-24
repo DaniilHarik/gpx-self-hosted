@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "gpx-viewer",
+      "runtimeExecutable": "go",
+      "runtimeArgs": ["run", "./cmd/gpx-self-host", "-port=:8090"],
+      "port": 8090
+    }
+  ]
+}

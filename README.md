@@ -1,206 +1,148 @@
-# Self-Hosted GPX Viewer (Offline-Friendly)
+# Self-Hosted GPX Viewer
 
 [![Backend Coverage](https://img.shields.io/codecov/c/github/daniilharik/gpx-self-hosted?flag=backend&label=Backend)](https://codecov.io/gh/daniilharik/gpx-self-hosted)
 [![Frontend Coverage](https://img.shields.io/codecov/c/github/daniilharik/gpx-self-hosted?flag=frontend&label=Frontend)](https://codecov.io/gh/daniilharik/gpx-self-hosted)
 
-A lightweight, self-hosted web application for browsing, visualizing, and drawing GPX tracks locally. 
+A lightweight local web app for browsing activity tracks and plans, comparing
+multiple GPX files, drawing routes, and exporting GPX or map images.
 
-![App Screenshot](docs/screenshot.png)
+![App screenshot](docs/screenshot.png)
 
-It scans a local directory for `.gpx` files and displays them on an interactive map. 
+GPX files stay on the host. Base-map tiles are fetched through the Go server and
+cached on disk. The app is intended for a local machine or trusted network and
+does not include authentication; see [SECURITY.md](SECURITY.md).
 
-Map tiles are fetched via a backend proxy and cached on locally so the app can run independently once cache is warmed.
+## Requirements
 
-## ⚠️ Disclaimer
-
-This is a personal project with specialized requirements.
-
-* **AI-Native Development**: This project was built 95% using AI coding agents. It is designed to be easy to maintain and extend using AI, with comprehensive tests and a modular structure. 
-* **Security**: Currently intended for **local/trusted network use**. See [SECURITY.md](SECURITY.md) for current hardening status and recommendations.
-* **Targeted Use**: Initially developed with specific features for Estonia (e.g., Maa-amet and OpenTopoMap layers), but extensible to any region.
-* **OpenStreetMap Compliance**: Requests to the built-in `openstreetmap` provider identify the backend proxy with an app-specific `User-Agent` and forward the browser `Referer` when present so standard OSM tiles can distinguish proxied web traffic.
-
-### Prerequisites
-* [Go](https://go.dev/dl/) 1.26+ installed.
-* [Node.js](https://nodejs.org/) installed (for frontend tests only, optional).
+- Go 1.26 or newer.
+- Node.js only when running frontend tests.
 
 ## Quick start
 
-1. Put your `.gpx` files under `data/Activities/` (subfolders are fine). Plans go under `data/Plans/`.
+1. Put recorded tracks under `data/Activities/<activity>/`. Put planned routes
+   under `data/Plans/`. Nested folders are supported.
 2. Start the server:
-    ```bash
-    ./run.sh
-    # or: go run ./cmd/gpx-self-host
-    ```
+
+   ```bash
+   ./run.sh
+   # or
+   go run ./cmd/gpx-self-host
+   ```
+
 3. Open `http://localhost:8080`.
-
-## Development
-
-### Build
-- Backend binary: `go build -o gpx-self-host ./cmd/gpx-self-host`
-- Run the binary: `./gpx-self-host`
-- If you modify frontend assets, no build step is required; files in `static/` are served directly.
-
-### OS-specific notes
-- macOS/Linux: use the commands above as-is.
-- Windows (PowerShell): `go build -o gpx-self-host.exe ./cmd/gpx-self-host` then `.\gpx-self-host.exe`.
-- Windows: `./run.sh` is not supported; use `go run ./cmd/gpx-self-host` or the built `.exe`.
-
-### Tests
-- Go: `go test ./...`
-- Frontend (Jest, with coverage): `npm test`
-
-## Architecture
-
-The project follows a **Client-Server** architecture designed for simplicity and ease of development.
-
-### 1. Backend (Go)
-
-The backend is written in **Go** (Golang) and uses the standard library (`net/http`) to keep dependencies minimal.
-*   **Static File Server**: Serves the HTML, CSS, and JavaScript files from the `static/` directory.
-*   **Data Server**: Exposes the `data/` directory to allow the frontend to fetch raw `.gpx` files.
-*   **API Layer**:
-    *   `GET /api/gpx`: Traverses `data/Activities/` and `data/Plans/` and returns a JSON list of available files.
-    *   `GET /api/tile-config`: Returns available tile providers + offline mode state.
-    *   `GET /api/status`: Returns basic cache statistics (hits/misses/errors).
-*   **Tile Proxy + Cache**: `GET /tiles/{provider}/{z}/{x}/{y}.(png|jpg)` downloads and caches map tiles under `cache/tiles/`. Requests to the built-in `openstreetmap` provider additionally send an app-specific `User-Agent` and forward the browser `Referer` when available.
-*   **Service Layer**: Business logic is decoupled into `internal/service/` for better testability and maintainability.
-
-### 2. Frontend (HTML/JS/CSS)
-
-The frontend is a Single Page Application (SPA) purposefully built with vanilla JavaScript to keep dependencies minimal.
-
-The frontend is built with the following dependencies:
-*   **Leaflet.js**: Handles the map rendering and user interaction (pan, zoom).
-*   **leaflet-gpx**: A client-side plugin that parses GPX XML data and renders it as Polyline layers on the map. It also extracts track metadata (elevation, time, distance).
-*   **Leaflet.draw**: Enables drawing and exporting new GPX tracks directly from the map.
-
-### Directory Structure
-```
-gpx-self-host/
-├── cmd/gpx-self-host/  # CLI entrypoint (main package)
-├── internal/         # Application packages
-│   ├── config/       # Flag parsing and default config
-│   ├── handler/      # HTTP handlers
-│   ├── model/        # Shared DTOs and types
-│   ├── server/       # Router setup and server initialization
-│   └── service/      # Core business logic (gpx, tiles)
-├── go.mod            # Go module definition
-├── data/             # Directory for storing .gpx files (Activities/ + Plans/)
-└── static/           # Frontend assets
-    ├── index.html    # Main application entry point
-    ├── css/
-    │   └── style.css # App styling
-    ├── js/
-    │   ├── app.js    # App bootstrap and event wiring
-    │   ├── draw.js   # Drawing tools and GPX/image export
-    │   ├── files.js  # File list rendering, search, and view filters
-    │   ├── map.js    # Map setup, theme, and bottom map controls
-    │   ├── state.js  # Shared state and UI element accessors
-    │   ├── tiles.js  # Tile provider config and base-layer setup
-    │   ├── tracks.js # Track loading, focus, and marker toggles
-    │   └── utils.js  # Shared formatting and activity helpers
-```
 
 ## Features
 
-*   **Automatic Indexing**: Just drop files in `data/Activities/` or `data/Plans/` and refresh.
-*   **Activities and Plans Views**: Switch between `Activities` and `Plans`; plans are kept out of the activity chip filter and listed separately.
-*   **Detailed Stats**: Distance, Duration, Speed, Elevation Gain/Loss.
-*   **Light/Dark Theme Toggle**: Toggle the theme from the sidebar header; the selected mode is stored in `localStorage` and overrides system preference on future visits.
-*   **Multiple Layers**: Switch between OpenTopoMap, OpenStreetMap, and Maa-amet (Estonia); the default base layer is Maa-amet kaart, and OpenTopoMap supports zoom levels `0-17`. Note: `maaamet-foto` currently proxies through a `.png` tile path while the upstream serves JPEG, so cached responses can carry the wrong `Content-Type` until that mismatch is fixed.
-*   **Granular Zooming**: Bottom-center zoom slider with click-to-cycle speed presets (`Fast`, `Normal`, `Precise`) synchronized across +/- clicks, double-click map zoom, gesture snap speed, and wheel zoom behavior.
-*   **Viewport BBox Copy**: Copy the current map viewport bounds as `west,south,east,north` decimal coordinates from the bottom map controls.
-*   **Coordinate Copy**: The bottom map controls keep showing the current map-center `lat, lng`; click any point on the map to target that exact coordinate for copying, then click the readout itself to copy it.
-*   **Search & Filter**: Real-time filtering by name; activity chips; year-based grouping.
-*   **Multi-Track Mode**: Use the compact `Multi-select` control above the list to reveal per-row checkboxes and compare multiple tracks with distinct colors.
-*   **Marker Visibility Toggle**: Show/hide start and end markers to reduce clutter when many tracks are loaded.
-*   **Drawing & Export**: Draw new routes on the map and download them as GPX 1.1 with the standard Topografix namespace and metadata block, plus export a high-resolution PNG snapshot of the current map view (tiles + visible overlays).
+- Separate Activities and Plans views with search, activity filters, and year
+  grouping.
+- Single-track focus or multi-track comparison with distinct track colors.
+- Distance, duration, date, moving speed, and elevation gain/loss.
+- Persistent light/dark theme and base-layer selection.
+- OpenStreetMap, OpenTopoMap, and Maa-amet base layers by default.
+- Quarter-step zoom slider, adjustable zoom speed, coordinate copying, and
+  viewport bounds copying.
+- Optional start/end markers.
+- Polyline and waypoint drawing with GPX 1.1 export.
+- High-resolution PNG export of the visible map and overlays.
+- On-disk GPX metadata and map-tile caches.
+- Cache-only tile serving in offline mode.
 
-## Supported activities
-
-Activities are derived from the folder name directly under `data/Activities/`. 
-
-Any folder name works, but the ones below get custom icons in the UI (case-insensitive).
-
-| Activity folder name | Icon | Notes |
-| --- | --- | --- |
-| backpacking | mountain | |
-| speed hiking | person-hiking | |
-| bikepacking | person-biking | |
-| gravel | bicycle | |
-| mtb | bicycle | Alias of mountain biking |
-| mountain biking | bicycle | |
-| mountain_biking | bicycle | Alias of mountain biking |
-| iceskating | skating | |
-| ice skating | skating | Alias of iceskating |
-| ice-skating | skating | Alias of iceskating |
-| ice_skating | skating | Alias of iceskating |
-| sailing | sailboat | |
-| overlanding | car | |
-| flight | plane | |
-| flights | plane | Alias of flight |
+Activity names come from the first folder below `data/Activities/`. Any name is
+accepted. Backpacking, speed hiking, bikepacking, gravel, MTB/mountain biking,
+ice skating, sailing, overlanding, and flight folders receive custom icons.
 
 ## Configuration
 
-The application supports multiple configuration sources with the following precedence:
-1.  **Command Line Flags** (highest priority)
-2.  **JSON Configuration File** (`config.json`)
-3.  **Environment Variables**
-4.  **Hardcoded Defaults** (lowest priority)
+Configuration precedence is:
 
-### CLI Flags
+1. Command-line flags.
+2. `config.json`.
+3. `GPX_SELF_HOST_*` environment variables.
+4. Built-in defaults.
 
-```bash
--port=:8080              Port to listen on
--static-dir=./static     Directory for static assets
--data-dir=./data         Directory for GPX files
--cache-dir=./cache       Directory for tile cache
--client-timeout=10s      HTTP client timeout
--max-retries=3           Max retry attempts
--offline=false           Enable offline mode
+### Command-line flags
+
+```text
+-port=:8080
+-static-dir=./static
+-data-dir=./data
+-cache-dir=./cache
+-client-timeout=10s
+-max-retries=3
+-offline=false
 ```
 
-### JSON Configuration (`config.json`)
+### JSON
 
-Create a `config.json` file in the root directory. You can override any of the settings, including tile providers.
+The repository includes a complete `config.json`. Its fields mirror the Go
+configuration structure. A custom `Providers` object replaces the default tile
+provider set.
 
 ```json
 {
   "Port": ":8080",
+  "StaticDir": "./static",
   "DataDir": "./data",
-  "Providers": {
-    "openstreetmap": {
-      "Name": "OpenStreetMap",
-      "URLTemplate": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-      "IsTMS": false,
-      "Attribution": "© OpenStreetMap contributors",
-      "ZoomRange": [0, 18]
-    }
-  }
+  "CacheDir": "./cache",
+  "Offline": false
 }
 ```
 
-### Environment Variables
+`ClientTimeout` is a Go `time.Duration` value and is represented in JSON as
+nanoseconds; `10000000000` is 10 seconds.
 
-All settings can be set via environment variables prefixed with `GPX_SELF_HOST_`.
+### Environment variables
 
-| Variable | Description |
+| Variable | Purpose |
 | --- | --- |
-| `GPX_SELF_HOST_PORT` | Port to listen on (default `:8080`) |
-| `GPX_SELF_HOST_STATIC_DIR` | Directory to serve static assets from |
-| `GPX_SELF_HOST_DATA_DIR` | Directory containing GPX files |
-| `GPX_SELF_HOST_CACHE_DIR` | Directory to store cached map tiles |
-| `GPX_SELF_HOST_CLIENT_TIMEOUT` | HTTP client timeout (e.g., `10s`) |
-| `GPX_SELF_HOST_MAX_RETRIES` | Max retries for tile downloads |
-| `GPX_SELF_HOST_OFFLINE` | Enable offline mode (`true`/`false`) |
+| `GPX_SELF_HOST_PORT` | Listen address |
+| `GPX_SELF_HOST_STATIC_DIR` | Static asset directory |
+| `GPX_SELF_HOST_DATA_DIR` | GPX data directory |
+| `GPX_SELF_HOST_CACHE_DIR` | Cache directory |
+| `GPX_SELF_HOST_CLIENT_TIMEOUT` | Tile request timeout, such as `10s` |
+| `GPX_SELF_HOST_MAX_RETRIES` | Tile download attempts |
+| `GPX_SELF_HOST_OFFLINE` | Cache-only tile mode (`true` or `false`) |
 
+## Offline mode
 
-#### Offline mode
+Run `./run.sh -offline` or set `Offline` to `true` to prevent upstream tile
+requests. Browse the required areas and zoom levels while online first; a cache
+miss returns `404` in offline mode.
 
-Run with `-offline` (or set `Offline: true` in JSON/ENV) to block all upstream tile downloads and serve map tiles from the local cache only.
-- Warm the cache while online by browsing the areas/zooms you care about.
-- Start the server with `./run.sh -offline`.
-- If a requested tile is missing from the cache, the server returns `404` instead of reaching out to the provider.
+The browser still loads Leaflet, Leaflet.draw, leaflet-gpx, Font Awesome, and
+fonts from CDNs. A warmed tile cache therefore supports cache-only maps but not
+a fully disconnected first page load.
 
-When the app is online and proxying standard OpenStreetMap tiles, that provider can see the proxy `User-Agent` and may also receive the page `Referer` (for example `http://localhost:8080/`) if the browser supplied one.
+When online, requests to the built-in OpenStreetMap provider use an
+application-specific `User-Agent`. The browser `Referer` is forwarded when
+present.
+
+## Architecture
+
+- `cmd/gpx-self-host/`: CLI entrypoint.
+- `internal/config/`: flags, JSON, environment variables, and defaults.
+- `internal/handler/`: HTTP handlers.
+- `internal/server/`: routing and server lifecycle.
+- `internal/service/gpx/`: GPX discovery, parsing, and metadata caching.
+- `internal/service/tiles/`: tile proxying and disk caching.
+- `static/`: vanilla JavaScript SPA, HTML, and CSS.
+
+The server exposes the GPX index, client-safe tile configuration, cache status,
+source GPX files, and proxied map tiles over HTTP. See `SPEC.md` for the
+behavioral contract.
+
+## Development
+
+```bash
+go build -o gpx-self-host ./cmd/gpx-self-host
+go test ./...
+npm install
+npm test
+```
+
+Frontend assets require no build step. On Windows, run
+`go run ./cmd/gpx-self-host` or build `gpx-self-host.exe`; `run.sh` is for
+macOS and Linux.
+
+Product behavior is defined in [SPEC.md](SPEC.md). Contribution guidance is in
+[CONTRIBUTING.md](CONTRIBUTING.md).
