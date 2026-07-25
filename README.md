@@ -28,7 +28,7 @@ does not include authentication; see [SECURITY.md](SECURITY.md).
    ```bash
    ./start.sh
    # or
-   go run ./cmd/gpx-self-host
+   go run ./cmd/gpx-self-hosted
    ```
 
 3. Open `http://localhost:8080`.
@@ -143,7 +143,7 @@ present.
 
 ## Architecture
 
-- `cmd/gpx-self-host/`: CLI entrypoint.
+- `cmd/gpx-self-hosted/`: CLI entrypoint.
 - `internal/config/`: flags, JSON, environment variables, and defaults.
 - `internal/handler/`: HTTP handlers.
 - `internal/server/`: routing and server lifecycle.
@@ -158,14 +158,14 @@ behavioral contract.
 ## Development
 
 ```bash
-go build -o gpx-self-host ./cmd/gpx-self-host
+go build -o gpx-self-hosted ./cmd/gpx-self-hosted
 go test ./...
 npm install
 npm test
 ```
 
 Frontend assets require no build step. On Windows, run
-`go run ./cmd/gpx-self-host` or build `gpx-self-host.exe`; `start.sh` is for
+`go run ./cmd/gpx-self-hosted` or build `gpx-self-hosted.exe`; `start.sh` is for
 macOS and Linux.
 
 Product behavior is defined in [SPEC.md](SPEC.md). Contribution guidance is in

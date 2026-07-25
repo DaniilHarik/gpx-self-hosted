@@ -10,4 +10,4 @@ if [[ "$(uname)" == "Darwin" ]]; then
   ldflags=(-ldflags=-linkmode=external)
 fi
 
-go run "${ldflags[@]}" ./cmd/gpx-self-host "$@"
+go run "${ldflags[@]}" ./cmd/gpx-self-hosted "$@"

@@ -20,7 +20,7 @@
 
 ## Architecture
 
-- Go standard-library backend: `cmd/gpx-self-host/` and `internal/`.
+- Go standard-library backend: `cmd/gpx-self-hosted/` and `internal/`.
 - Vanilla JavaScript frontend: `static/`.
 - Activity tracks: `data/Activities/`; plans: `data/Plans/`.
 - Tile cache: `cache/tiles/`; GPX metadata cache: `cache/gpx_metadata.json`.
@@ -30,7 +30,7 @@
 
 ## Commands
 
-- Run: `./start.sh` or `go run ./cmd/gpx-self-host`.
+- Run: `./start.sh` or `go run ./cmd/gpx-self-hosted`.
 - Backend tests: `go test ./...`.
 - Frontend tests: `npm test`.
 - Before visual testing, check `http://localhost:8080/` and reuse a reachable
