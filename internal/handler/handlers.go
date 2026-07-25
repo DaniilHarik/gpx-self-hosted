@@ -9,9 +9,9 @@ import (
 	"path"
 	"strings"
 
-	"gpx-self-host/internal/config"
-	"gpx-self-host/internal/model"
-	"gpx-self-host/internal/service/tiles"
+	"gpx-self-hosted/internal/config"
+	"gpx-self-hosted/internal/model"
+	"gpx-self-hosted/internal/service/tiles"
 )
 
 type GPXService interface {

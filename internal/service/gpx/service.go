@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gpx-self-host/internal/model"
-	"gpx-self-host/internal/service/gpx/cache"
+	"gpx-self-hosted/internal/model"
+	"gpx-self-hosted/internal/service/gpx/cache"
 )
 
 type Service struct {

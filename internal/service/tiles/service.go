@@ -14,8 +14,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gpx-self-host/internal/config"
-	"gpx-self-host/internal/model"
+	"gpx-self-hosted/internal/config"
+	"gpx-self-hosted/internal/model"
 )
 
 var (

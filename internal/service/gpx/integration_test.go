@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"gpx-self-host/internal/service/gpx/cache"
+	"gpx-self-hosted/internal/service/gpx/cache"
 )
 
 func TestService_ListFiles_Caching(t *testing.T) {

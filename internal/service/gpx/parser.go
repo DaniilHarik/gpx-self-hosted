@@ -6,7 +6,7 @@ import (
 	"math"
 	"time"
 
-	"gpx-self-host/internal/model"
+	"gpx-self-hosted/internal/model"
 )
 
 type gpxXML struct {

@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gpx-self-host/internal/config"
+	"gpx-self-hosted/internal/config"
 )
 
 func TestServerRegistersStaticAndDataRoutes(t *testing.T) {

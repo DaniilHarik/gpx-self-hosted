@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gpx-self-host/internal/service/gpx/cache"
+	"gpx-self-hosted/internal/service/gpx/cache"
 )
 
 func BenchmarkListFiles_NoCache(b *testing.B) {

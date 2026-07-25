@@ -9,8 +9,8 @@ import (
 	"syscall"
 	"time"
 
-	"gpx-self-host/internal/config"
-	"gpx-self-host/internal/server"
+	"gpx-self-hosted/internal/config"
+	"gpx-self-hosted/internal/server"
 )
 
 func main() {

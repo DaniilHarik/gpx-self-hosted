@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"gpx-self-host/internal/config"
-	"gpx-self-host/internal/model"
+	"gpx-self-hosted/internal/config"
+	"gpx-self-hosted/internal/model"
 )
 
 func TestLogGPXSources(t *testing.T) {

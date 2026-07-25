@@ -7,11 +7,11 @@ import (
 	"path/filepath"
 	"time"
 
-	"gpx-self-host/internal/config"
-	"gpx-self-host/internal/handler"
-	"gpx-self-host/internal/service/gpx"
-	"gpx-self-host/internal/service/gpx/cache"
-	"gpx-self-host/internal/service/tiles"
+	"gpx-self-hosted/internal/config"
+	"gpx-self-hosted/internal/handler"
+	"gpx-self-hosted/internal/service/gpx"
+	"gpx-self-hosted/internal/service/gpx/cache"
+	"gpx-self-hosted/internal/service/tiles"
 )
 
 type Server struct {

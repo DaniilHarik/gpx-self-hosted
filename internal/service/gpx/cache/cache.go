@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"gpx-self-host/internal/model"
+	"gpx-self-hosted/internal/model"
 )
 
 type CacheItem struct {

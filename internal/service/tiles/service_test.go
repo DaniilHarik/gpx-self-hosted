@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"gpx-self-host/internal/config"
+	"gpx-self-hosted/internal/config"
 )
 
 func TestGetTile_CacheHit(t *testing.T) {

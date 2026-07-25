@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"gpx-self-host/internal/model"
+	"gpx-self-hosted/internal/model"
 )
 
 func TestCache_SaveLoad(t *testing.T) {
