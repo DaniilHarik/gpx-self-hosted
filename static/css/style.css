@@ -272,11 +272,71 @@ body {
     cursor: not-allowed;
 }
 
+.activity-filter-section {
+    margin-top: 12px;
+}
+
+.activity-filter-toggle {
+    width: 100%;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg-chip);
+    color: var(--text-main);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.activity-filter-toggle:hover,
+.activity-filter-toggle[aria-expanded="true"] {
+    border-color: var(--accent);
+    background: var(--bg-hover);
+}
+
+.activity-filter-toggle-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-weight: 600;
+}
+
+.activity-filter-toggle-label i {
+    color: var(--accent);
+}
+
+.activity-filter-summary {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--text-muted);
+    text-align: right;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.activity-filter-chevron {
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    transition: transform var(--transition-fast);
+}
+
+.activity-filter-toggle[aria-expanded="true"] .activity-filter-chevron {
+    transform: rotate(180deg);
+}
+
 .activity-filters {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    margin-top: 12px;
+    margin-top: 8px;
+}
+
+.activity-filters[hidden] {
+    display: none;
 }
 
 .list-toolbar {

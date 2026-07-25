@@ -31,8 +31,48 @@ export function updateViewToggleUiState({ hasPlans = state.hasPlanFiles } = {}) 
 }
 
 export function updateActivityFilterVisibility() {
-    if (!ui.activityFilters) return;
-    ui.activityFilters.classList.toggle('hidden', state.currentView === 'plans');
+    if (ui.activityFilterSection) {
+        ui.activityFilterSection.classList.toggle('hidden', state.currentView === 'plans');
+    } else if (ui.activityFilters) {
+        ui.activityFilters.classList.toggle('hidden', state.currentView === 'plans');
+    }
+}
+
+export function setupActivityFilterToggle() {
+    if (!ui.activityFilterToggle || !ui.activityFilters) return;
+    ui.activityFilterToggle.addEventListener('click', () => {
+        state.areActivityFiltersExpanded = !state.areActivityFiltersExpanded;
+        updateActivityFilterPanelUi();
+    });
+    updateActivityFilterPanelUi();
+}
+
+function updateActivityFilterPanelUi() {
+    if (!ui.activityFilterToggle || !ui.activityFilters) return;
+    const expanded = state.areActivityFiltersExpanded;
+    ui.activityFilterToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    ui.activityFilters.hidden = !expanded;
+    updateActivityFilterSummary();
+}
+
+function updateActivityFilterSummary() {
+    if (!ui.activityFilterSummary || !ui.activityFilterToggle) return;
+
+    const selected = Array.from(state.selectedActivities).sort((a, b) => a.localeCompare(b));
+    let summary = 'All';
+    if (selected.length === 1) {
+        [summary] = selected;
+    } else if (selected.length === 2) {
+        summary = selected.join(', ');
+    } else if (selected.length > 2) {
+        summary = `${selected.slice(0, 2).join(', ')} +${selected.length - 2}`;
+    }
+
+    ui.activityFilterSummary.textContent = summary;
+    ui.activityFilterSummary.title = selected.length > 0 ? selected.join(', ') : 'All activities';
+    const action = state.areActivityFiltersExpanded ? 'Hide' : 'Show';
+    const selection = selected.length > 0 ? `${selected.join(', ')} selected` : 'all activities selected';
+    ui.activityFilterToggle.setAttribute('aria-label', `${action} activity filters; ${selection}`);
 }
 
 export function setupActivityFilters(activities) {
@@ -61,14 +101,17 @@ export function setupActivityFilters(activities) {
 
     ui.activityFilters.appendChild(fragment);
     updateActivityFilterStyles();
+    updateActivityFilterPanelUi();
 }
 
 function createActivityButton(label, value, iconClass, count) {
     const button = document.createElement('button');
+    button.type = 'button';
     button.className = 'filter-chip' + (value === 'all' ? ' active' : '');
     button.dataset.activity = value;
     const icon = document.createElement('i');
     icon.classList.add('fas', iconClass);
+    icon.setAttribute('aria-hidden', 'true');
     const text = document.createElement('span');
     text.textContent = label;
     button.appendChild(icon);
@@ -109,12 +152,17 @@ export function updateActivityFilterStyles() {
     buttons.forEach(button => {
         const value = button.dataset.activity;
         if (value === 'all') {
-            button.classList.toggle('active', state.selectedActivities.size === 0);
+            const isActive = state.selectedActivities.size === 0;
+            button.classList.toggle('active', isActive);
+            button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
         } else {
             const activity = state.activityKeyMap.get(value);
-            button.classList.toggle('active', activity ? state.selectedActivities.has(activity) : false);
+            const isActive = activity ? state.selectedActivities.has(activity) : false;
+            button.classList.toggle('active', isActive);
+            button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
         }
     });
+    updateActivityFilterSummary();
 }
 
 export function applyFilters() {

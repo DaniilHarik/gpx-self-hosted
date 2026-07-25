@@ -34,7 +34,9 @@ Setup and configuration documentation belong in `README.md`.
 - Search matches the filename or relative path, case-insensitively.
 - Activities are sorted by a date prefix in the filename, newest first, and
   grouped by year.
-- Activity filters support multiple selections. `All` clears them.
+- Activity filters are collapsed by default behind a compact control that
+  summarizes the active selections. They support multiple selections, and
+  `All` clears them.
 - Plans are excluded from activity filters, sorted alphabetically by relative
   path, and are not grouped by year.
 - The Plans control is disabled when no plan files exist.

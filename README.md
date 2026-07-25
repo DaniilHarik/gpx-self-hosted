@@ -33,8 +33,8 @@ does not include authentication; see [SECURITY.md](SECURITY.md).
 
 ## Features
 
-- Separate Activities and Plans views with search, activity filters, and year
-  grouping.
+- Separate Activities and Plans views with search, collapsible multi-select
+  activity filters, and year grouping.
 - Single-track focus or multi-track comparison with distinct track colors.
 - Distance, duration, date, moving speed, and elevation gain/loss.
 - Persistent light/dark theme and base-layer selection.

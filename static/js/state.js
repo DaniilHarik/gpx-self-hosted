@@ -14,6 +14,7 @@ export const state = {
     allFiles: [],
     selectedActivities: new Set(),
     activityKeyMap: new Map(),
+    areActivityFiltersExpanded: false,
     searchTerm: '',
     currentView: 'activities', // 'activities' | 'plans'
     hasPlanFiles: false,
@@ -30,6 +31,9 @@ export const state = {
 export const ui = {
     get fileList() { return document.getElementById('file-list'); },
     get searchInput() { return document.getElementById('filesearch'); },
+    get activityFilterSection() { return document.getElementById('activity-filter-section'); },
+    get activityFilterToggle() { return document.getElementById('toggle-activity-filters'); },
+    get activityFilterSummary() { return document.getElementById('activity-filter-summary'); },
     get activityFilters() { return document.getElementById('activity-filters'); },
     get viewToggle() { return document.getElementById('view-toggle'); },
     get infoPanel() { return document.getElementById('info-panel'); },
@@ -59,6 +63,7 @@ export function resetState() {
     state.allFiles = [];
     state.selectedActivities.clear();
     state.activityKeyMap.clear();
+    state.areActivityFiltersExpanded = false;
     state.searchTerm = '';
     state.currentView = 'activities';
     state.hasPlanFiles = false;

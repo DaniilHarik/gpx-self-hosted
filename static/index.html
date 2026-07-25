@@ -81,11 +81,22 @@
                         <span>Plans</span>
                     </button>
                 </div>
-                <div class="activity-filters" id="activity-filters">
-                    <button class="filter-chip active" data-activity="all">
-                        <i class="fas fa-layer-group"></i>
-                        <span>All activities</span>
+                <div class="activity-filter-section" id="activity-filter-section">
+                    <button id="toggle-activity-filters" class="activity-filter-toggle" type="button"
+                        aria-expanded="false" aria-controls="activity-filters">
+                        <span class="activity-filter-toggle-label">
+                            <i class="fas fa-filter" aria-hidden="true"></i>
+                            <span>Filters</span>
+                        </span>
+                        <span id="activity-filter-summary" class="activity-filter-summary">All</span>
+                        <i class="fas fa-chevron-down activity-filter-chevron" aria-hidden="true"></i>
                     </button>
+                    <div class="activity-filters" id="activity-filters" hidden>
+                        <button class="filter-chip active" data-activity="all">
+                            <i class="fas fa-layer-group"></i>
+                            <span>All activities</span>
+                        </button>
+                    </div>
                 </div>
                 <div class="list-toolbar" aria-label="Track list controls">
                     <span class="list-toolbar-title">Tracks</span>

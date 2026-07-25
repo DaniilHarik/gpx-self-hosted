@@ -82,7 +82,11 @@ async function bootstrapApp(options = {}) {
             <button class="view-toggle-btn active" data-view="activities" aria-pressed="true">Activities</button>
             <button class="view-toggle-btn" data-view="plans" aria-pressed="false">Plans</button>
         </div>
-        <div id="activity-filters"></div>
+        <div id="activity-filter-section">
+            <button id="toggle-activity-filters" aria-expanded="false" aria-controls="activity-filters"></button>
+            <span id="activity-filter-summary"></span>
+            <div id="activity-filters" hidden></div>
+        </div>
         <div id="info-panel" class="hidden">
              <h3 id="track-name"></h3>
              <span id="track-distance"></span>
@@ -375,6 +379,15 @@ describe('CSS regressions', () => {
         const primaryHoverRule = css.match(/\.primary-btn:hover\s*\{[^}]*\}/s);
         expect(primaryHoverRule).toBeTruthy();
         expect(primaryHoverRule[0]).not.toMatch(/filter\s*:/);
+    });
+
+    test('collapsed activity filters override the flex layout', () => {
+        const cssPath = path.join(__dirname, '../../css/style.css');
+        const css = fs.readFileSync(cssPath, 'utf8');
+        const hiddenFilterRule = css.match(/\.activity-filters\[hidden\]\s*\{[^}]*\}/s);
+
+        expect(hiddenFilterRule).toBeTruthy();
+        expect(hiddenFilterRule[0]).toMatch(/display\s*:\s*none\s*;/);
     });
 });
 
@@ -773,6 +786,45 @@ describe('App Logic', () => {
             expect(evilChip.classList.contains('active')).toBe(false);
         });
 
+        test('keeps activity filters collapsed with an active-selection summary', () => {
+            const toggle = document.getElementById('toggle-activity-filters');
+            const filters = document.getElementById('activity-filters');
+            const summary = document.getElementById('activity-filter-summary');
+            const runChip = findChipByLabel('runs');
+            const walkChip = findChipByLabel('walks');
+            const evilChip = findChipByLabel('onerror=alert');
+            const allChip = Array.from(filters.querySelectorAll('.filter-chip'))
+                .find(btn => btn.dataset.activity === 'all');
+
+            expect(toggle.getAttribute('aria-expanded')).toBe('false');
+            expect(toggle.getAttribute('aria-label')).toBe('Show activity filters; all activities selected');
+            expect(filters.hidden).toBe(true);
+            expect(summary.textContent).toBe('All');
+
+            toggle.click();
+            expect(toggle.getAttribute('aria-expanded')).toBe('true');
+            expect(filters.hidden).toBe(false);
+
+            runChip.click();
+            walkChip.click();
+            expect(summary.textContent).toBe('runs, walks');
+            expect(toggle.getAttribute('aria-label')).toBe('Hide activity filters; runs, walks selected');
+
+            evilChip.click();
+            expect(summary.textContent).toBe('<img src=x onerror=alert(1)>, runs +1');
+            expect(summary.title).toBe('<img src=x onerror=alert(1)>, runs, walks');
+
+            allChip.click();
+            expect(summary.textContent).toBe('All');
+
+            runChip.click();
+            walkChip.click();
+            toggle.click();
+            expect(filters.hidden).toBe(true);
+            expect(summary.textContent).toBe('runs, walks');
+            expect(toggle.getAttribute('aria-label')).toBe('Show activity filters; runs, walks selected');
+        });
+
         test('treats Plans folder as a separate view excluded from Activities', async () => {
             const planFiles = [
                 ...defaultGpxFiles,
@@ -792,7 +844,7 @@ describe('App Logic', () => {
             plansBtn.click();
             expect(plansBtn.getAttribute('aria-pressed')).toBe('true');
             expect(findViewButton('activities').getAttribute('aria-pressed')).toBe('false');
-            expect(document.getElementById('activity-filters').classList.contains('hidden')).toBe(true);
+            expect(document.getElementById('activity-filter-section').classList.contains('hidden')).toBe(true);
             expect(list.querySelectorAll('li.year-separator').length).toBe(0);
             expect(list.querySelectorAll('li:not(.year-separator)').length).toBe(2);
             expect(list.innerHTML).toContain('2025-01-03_Beta');
@@ -808,7 +860,7 @@ describe('App Logic', () => {
             const activitiesBtn = findViewButton('activities');
             activitiesBtn.click();
             expect(activitiesBtn.getAttribute('aria-pressed')).toBe('true');
-            expect(document.getElementById('activity-filters').classList.contains('hidden')).toBe(false);
+            expect(document.getElementById('activity-filter-section').classList.contains('hidden')).toBe(false);
 
             const runChip = findChipByLabel('runs');
             runChip.click();
