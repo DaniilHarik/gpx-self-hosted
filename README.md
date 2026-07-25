@@ -20,11 +20,13 @@ does not include authentication; see [SECURITY.md](SECURITY.md).
 ## Quick start
 
 1. Put recorded tracks under `data/Activities/<activity>/`. Put planned routes
-   under `data/Plans/`. Nested folders are supported.
+   under `data/Plans/`. Nested folders are supported. These roots can be
+   configured independently when activities and plans live in different
+   locations.
 2. Start the server:
 
    ```bash
-   ./run.sh
+   ./start.sh
    # or
    go run ./cmd/gpx-self-host
    ```
@@ -47,9 +49,10 @@ does not include authentication; see [SECURITY.md](SECURITY.md).
 - On-disk GPX metadata and map-tile caches.
 - Cache-only tile serving in offline mode.
 
-Activity names come from the first folder below `data/Activities/`. Any name is
-accepted. Backpacking, speed hiking, bikepacking, gravel, MTB/mountain biking,
-ice skating, sailing, overlanding, and flight folders receive custom icons.
+Activity names come from the first folder below the configured activity root.
+Any name is accepted. Backpacking, speed hiking, bikepacking, gravel,
+MTB/mountain biking, ice skating, sailing, overlanding, and flight folders
+receive custom icons.
 
 ## Configuration
 
@@ -65,7 +68,8 @@ Configuration precedence is:
 ```text
 -port=:8080
 -static-dir=./static
--data-dir=./data
+-activities-dir=./data/Activities
+-plans-dir=./data/Plans
 -cache-dir=./cache
 -client-timeout=10s
 -max-retries=3
@@ -82,10 +86,29 @@ provider set.
 {
   "Port": ":8080",
   "StaticDir": "./static",
-  "DataDir": "./data",
+  "ActivitiesDir": "./data/Activities",
+  "PlansDir": "./data/Plans",
   "CacheDir": "./cache",
   "Offline": false
 }
+```
+
+`ActivitiesDir` and `PlansDir` point directly at the folders to scan and serve.
+This allows recorded tracks to stay in an external or cloud-synced folder while
+plans remain in the repository; no copying or symlinks are required.
+
+Keep the checked-in `config.json` portable. To use a machine-specific activity
+folder without modifying it, override the path when starting the server:
+
+```bash
+./start.sh -activities-dir="/absolute/path/to/tracks"
+```
+
+Startup output reports the effective directories after configuration
+precedence is applied:
+
+```text
+INFO GPX source directories activities_dir=./data/Activities plans_dir=./data/Plans
 ```
 
 `ClientTimeout` is a Go `time.Duration` value and is represented in JSON as
@@ -97,7 +120,8 @@ nanoseconds; `10000000000` is 10 seconds.
 | --- | --- |
 | `GPX_SELF_HOST_PORT` | Listen address |
 | `GPX_SELF_HOST_STATIC_DIR` | Static asset directory |
-| `GPX_SELF_HOST_DATA_DIR` | GPX data directory |
+| `GPX_SELF_HOST_ACTIVITIES_DIR` | Activity GPX directory |
+| `GPX_SELF_HOST_PLANS_DIR` | Plan GPX directory |
 | `GPX_SELF_HOST_CACHE_DIR` | Cache directory |
 | `GPX_SELF_HOST_CLIENT_TIMEOUT` | Tile request timeout, such as `10s` |
 | `GPX_SELF_HOST_MAX_RETRIES` | Tile download attempts |
@@ -105,7 +129,7 @@ nanoseconds; `10000000000` is 10 seconds.
 
 ## Offline mode
 
-Run `./run.sh -offline` or set `Offline` to `true` to prevent upstream tile
+Run `./start.sh -offline` or set `Offline` to `true` to prevent upstream tile
 requests. Browse the required areas and zoom levels while online first; a cache
 miss returns `404` in offline mode.
 
@@ -141,7 +165,7 @@ npm test
 ```
 
 Frontend assets require no build step. On Windows, run
-`go run ./cmd/gpx-self-host` or build `gpx-self-host.exe`; `run.sh` is for
+`go run ./cmd/gpx-self-host` or build `gpx-self-host.exe`; `start.sh` is for
 macOS and Linux.
 
 Product behavior is defined in [SPEC.md](SPEC.md). Contribution guidance is in

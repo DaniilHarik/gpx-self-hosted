@@ -12,7 +12,7 @@ func TestListFiles_ContextCanceled(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	svc := NewService(t.TempDir())
+	svc := NewService(t.TempDir(), t.TempDir())
 	_, err := svc.ListFiles(ctx)
 	if err == nil || !errors.Is(err, context.Canceled) {
 		t.Fatalf("expected context.Canceled, got %v", err)
@@ -44,7 +44,7 @@ func TestListFiles_ReturnsActivitiesAndPlans(t *testing.T) {
 		}
 	}
 
-	svc := NewService(dataDir)
+	svc := NewService(activitiesDir, plansDir)
 	list, err := svc.ListFiles(context.Background())
 	if err != nil {
 		t.Fatalf("ListFiles error: %v", err)
@@ -77,7 +77,10 @@ func TestListFiles_ReturnsActivitiesAndPlans(t *testing.T) {
 
 func TestListFiles_MissingRootsOk(t *testing.T) {
 	dataDir := t.TempDir()
-	svc := NewService(dataDir)
+	svc := NewService(
+		filepath.Join(dataDir, "Activities"),
+		filepath.Join(dataDir, "Plans"),
+	)
 
 	list, err := svc.ListFiles(context.Background())
 	if err != nil {
@@ -85,5 +88,44 @@ func TestListFiles_MissingRootsOk(t *testing.T) {
 	}
 	if len(list) != 0 {
 		t.Fatalf("expected no files, got %d", len(list))
+	}
+}
+
+func TestListFiles_UsesSeparateRoots(t *testing.T) {
+	activitiesDir := t.TempDir()
+	plansDir := t.TempDir()
+
+	activityPath := filepath.Join(activitiesDir, "Hiking", "activity.gpx")
+	planPath := filepath.Join(plansDir, "Estonia", "plan.gpx")
+	for _, path := range []string{activityPath, planPath} {
+		if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+			t.Fatalf("failed to create content dir: %v", err)
+		}
+		if err := os.WriteFile(path, []byte("data"), 0644); err != nil {
+			t.Fatalf("failed to write %s: %v", path, err)
+		}
+	}
+
+	svc := NewService(activitiesDir, plansDir)
+	list, err := svc.ListFiles(context.Background())
+	if err != nil {
+		t.Fatalf("ListFiles error: %v", err)
+	}
+
+	got := make(map[string]string, len(list))
+	for _, file := range list {
+		got[file.RelativePath] = file.Path
+	}
+	want := map[string]string{
+		"Activities/Hiking/activity.gpx": "/data/Activities/Hiking/activity.gpx",
+		"Plans/Estonia/plan.gpx":         "/data/Plans/Estonia/plan.gpx",
+	}
+	if len(got) != len(want) {
+		t.Fatalf("got %d files, want %d", len(got), len(want))
+	}
+	for relativePath, path := range want {
+		if got[relativePath] != path {
+			t.Errorf("got path %q for %q, want %q", got[relativePath], relativePath, path)
+		}
 	}
 }

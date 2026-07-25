@@ -1,7 +1,8 @@
 {
   "Port": ":8080",
   "StaticDir": "./static",
-  "DataDir": "./data",
+  "ActivitiesDir": "./data/Activities",
+  "PlansDir": "./data/Plans",
   "CacheDir": "./cache",
   "ClientTimeout": 10000000000,
   "MaxRetries": 3,

@@ -1,8 +1,10 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -14,6 +16,28 @@ import (
 	"gpx-self-host/internal/config"
 	"gpx-self-host/internal/model"
 )
+
+func TestLogGPXSources(t *testing.T) {
+	var output bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&output, nil))
+	cfg := &config.Config{
+		ActivitiesDir: "/tracks/activities",
+		PlansDir:      "/tracks/plans",
+	}
+
+	logGPXSources(logger, cfg)
+
+	got := output.String()
+	for _, want := range []string{
+		`msg="GPX source directories"`,
+		"activities_dir=/tracks/activities",
+		"plans_dir=/tracks/plans",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("startup log %q does not contain %q", got, want)
+		}
+	}
+}
 
 func TestTileConfigHandler(t *testing.T) {
 	cfg := &config.Config{
@@ -118,8 +142,9 @@ func TestListGPXFiles(t *testing.T) {
 	}
 
 	cfg := &config.Config{
-		DataDir:  dataDir,
-		CacheDir: cacheDir,
+		ActivitiesDir: activitiesDir,
+		PlansDir:      plansDir,
+		CacheDir:      cacheDir,
 	}
 	srv := New(cfg)
 
@@ -563,10 +588,11 @@ func TestGetDirSize(t *testing.T) {
 
 func TestServer_ListenAndServeAndShutdown(t *testing.T) {
 	cfg := &config.Config{
-		Port:      ":0", // Random port
-		StaticDir: t.TempDir(),
-		DataDir:   t.TempDir(),
-		CacheDir:  "/non-existent-dir-for-coverage",
+		Port:          ":0", // Random port
+		StaticDir:     t.TempDir(),
+		ActivitiesDir: t.TempDir(),
+		PlansDir:      t.TempDir(),
+		CacheDir:      "/non-existent-dir-for-coverage",
 	}
 	srv := New(cfg)
 
@@ -593,10 +619,11 @@ func TestServer_ListenAndServeAndShutdown(t *testing.T) {
 
 func TestListenAndServe_Fail(t *testing.T) {
 	cfg := &config.Config{
-		Port:      "99999", // Invalid port
-		StaticDir: t.TempDir(),
-		DataDir:   t.TempDir(),
-		CacheDir:  t.TempDir(),
+		Port:          "99999", // Invalid port
+		StaticDir:     t.TempDir(),
+		ActivitiesDir: t.TempDir(),
+		PlansDir:      t.TempDir(),
+		CacheDir:      t.TempDir(),
 	}
 	srv := New(cfg)
 	err := srv.ListenAndServe()

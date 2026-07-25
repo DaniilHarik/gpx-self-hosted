@@ -26,7 +26,9 @@ func New(cfg *config.Config) *Server {
 		slog.Error("failed to load gpx metadata cache", "error", err)
 	}
 
-	gpxService := gpx.NewService(cfg.DataDir)
+	activitiesDir := cfg.ActivitiesDir
+	plansDir := cfg.PlansDir
+	gpxService := gpx.NewService(activitiesDir, plansDir)
 	gpxService.Cache = gpxCache
 	tileService := tiles.NewService(cfg)
 
@@ -35,7 +37,9 @@ func New(cfg *config.Config) *Server {
 
 	mux := http.NewServeMux()
 	mux.Handle("/", http.FileServer(http.Dir(cfg.StaticDir)))
-	mux.Handle("/data/", http.StripPrefix("/data/", http.FileServer(http.Dir(cfg.DataDir))))
+	mux.Handle("/data/", http.NotFoundHandler())
+	mux.Handle("/data/Activities/", http.StripPrefix("/data/Activities/", http.FileServer(http.Dir(activitiesDir))))
+	mux.Handle("/data/Plans/", http.StripPrefix("/data/Plans/", http.FileServer(http.Dir(plansDir))))
 	mux.HandleFunc("/api/gpx", h.ListGPXFiles)
 	mux.HandleFunc("/api/tile-config", h.TileConfig)
 	mux.HandleFunc("/api/status", h.Status)
@@ -61,11 +65,20 @@ func (s *Server) ListenAndServe() error {
 		size = 0
 	}
 	slog.Info("Current cache size", "size_readable", formatBytes(size))
+	logGPXSources(slog.Default(), s.cfg)
 	slog.Info("Starting server", "address", "http://localhost"+s.cfg.Port)
 	if err := s.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		return err
 	}
 	return nil
+}
+
+func logGPXSources(logger *slog.Logger, cfg *config.Config) {
+	logger.Info(
+		"GPX source directories",
+		"activities_dir", cfg.ActivitiesDir,
+		"plans_dir", cfg.PlansDir,
+	)
 }
 
 func (s *Server) Handler() http.Handler {

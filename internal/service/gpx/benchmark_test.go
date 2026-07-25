@@ -13,7 +13,10 @@ import (
 func BenchmarkListFiles_NoCache(b *testing.B) {
 	dataDir := b.TempDir()
 	createFiles(b, dataDir, 50)
-	svc := NewService(dataDir)
+	svc := NewService(
+		filepath.Join(dataDir, "Activities"),
+		filepath.Join(dataDir, "Plans"),
+	)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -28,14 +31,17 @@ func BenchmarkListFiles_WithCache_Cold(b *testing.B) {
 	dataDir := b.TempDir()
 	createFiles(b, dataDir, 50)
 	cacheFile := filepath.Join(b.TempDir(), "cache.json")
-	
-	svc := NewService(dataDir)
+
+	svc := NewService(
+		filepath.Join(dataDir, "Activities"),
+		filepath.Join(dataDir, "Plans"),
+	)
 	svc.Cache = cache.NewCache(cacheFile)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		// Reset cache for cold start simulation
-		svc.Cache = cache.NewCache(cacheFile) 
+		svc.Cache = cache.NewCache(cacheFile)
 		_, err := svc.ListFiles(context.Background())
 		if err != nil {
 			b.Fatal(err)
@@ -47,10 +53,13 @@ func BenchmarkListFiles_WithCache_Warm(b *testing.B) {
 	dataDir := b.TempDir()
 	createFiles(b, dataDir, 50)
 	cacheFile := filepath.Join(b.TempDir(), "cache.json")
-	
-	svc := NewService(dataDir)
+
+	svc := NewService(
+		filepath.Join(dataDir, "Activities"),
+		filepath.Join(dataDir, "Plans"),
+	)
 	svc.Cache = cache.NewCache(cacheFile)
-	
+
 	// Warm up
 	if _, err := svc.ListFiles(context.Background()); err != nil {
 		b.Fatal(err)
@@ -70,7 +79,7 @@ func createFiles(b *testing.B, dataDir string, count int) {
 	if err := os.MkdirAll(activitiesDir, 0755); err != nil {
 		b.Fatal(err)
 	}
-	
+
 	gpxContent := `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="test">
   <trk><name>Test</name><trkseg>

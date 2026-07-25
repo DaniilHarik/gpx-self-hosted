@@ -13,7 +13,8 @@ import (
 type Config struct {
 	Port          string
 	StaticDir     string
-	DataDir       string
+	ActivitiesDir string
+	PlansDir      string
 	CacheDir      string
 	Providers     map[string]TileProviderConfig
 	ClientTimeout time.Duration
@@ -49,7 +50,8 @@ func Parse(fs *flag.FlagSet, args []string) (*Config, error) {
 	defaultConfig := Config{
 		Port:          ":8080",
 		StaticDir:     "./static",
-		DataDir:       "./data",
+		ActivitiesDir: "./data/Activities",
+		PlansDir:      "./data/Plans",
 		CacheDir:      "./cache",
 		ClientTimeout: 10 * time.Second,
 		MaxRetries:    3,
@@ -67,8 +69,12 @@ func Parse(fs *flag.FlagSet, args []string) (*Config, error) {
 		defaultConfig.StaticDir = v
 		envFound = true
 	}
-	if v := os.Getenv("GPX_SELF_HOST_DATA_DIR"); v != "" {
-		defaultConfig.DataDir = v
+	if v := os.Getenv("GPX_SELF_HOST_ACTIVITIES_DIR"); v != "" {
+		defaultConfig.ActivitiesDir = v
+		envFound = true
+	}
+	if v := os.Getenv("GPX_SELF_HOST_PLANS_DIR"); v != "" {
+		defaultConfig.PlansDir = v
 		envFound = true
 	}
 	if v := os.Getenv("GPX_SELF_HOST_CACHE_DIR"); v != "" {
@@ -108,8 +114,11 @@ func Parse(fs *flag.FlagSet, args []string) (*Config, error) {
 			if jsonConfig.StaticDir != "" {
 				defaultConfig.StaticDir = jsonConfig.StaticDir
 			}
-			if jsonConfig.DataDir != "" {
-				defaultConfig.DataDir = jsonConfig.DataDir
+			if jsonConfig.ActivitiesDir != "" {
+				defaultConfig.ActivitiesDir = jsonConfig.ActivitiesDir
+			}
+			if jsonConfig.PlansDir != "" {
+				defaultConfig.PlansDir = jsonConfig.PlansDir
 			}
 			if jsonConfig.CacheDir != "" {
 				defaultConfig.CacheDir = jsonConfig.CacheDir
@@ -131,7 +140,8 @@ func Parse(fs *flag.FlagSet, args []string) (*Config, error) {
 
 	port := fs.String("port", defaultConfig.Port, "Port to listen on (e.g. :8080)")
 	staticDir := fs.String("static-dir", defaultConfig.StaticDir, "Directory to serve static assets from")
-	dataDir := fs.String("data-dir", defaultConfig.DataDir, "Directory containing GPX files")
+	activitiesDir := fs.String("activities-dir", defaultConfig.ActivitiesDir, "Directory containing activity GPX files")
+	plansDir := fs.String("plans-dir", defaultConfig.PlansDir, "Directory containing plan GPX files")
 	cacheDir := fs.String("cache-dir", defaultConfig.CacheDir, "Directory to store cached map tiles")
 	clientTimeout := fs.Duration("client-timeout", defaultConfig.ClientTimeout, "HTTP client timeout for tile downloads")
 	maxRetries := fs.Int("max-retries", defaultConfig.MaxRetries, "Maximum retry attempts when downloading tiles")
@@ -154,7 +164,8 @@ func Parse(fs *flag.FlagSet, args []string) (*Config, error) {
 	return &Config{
 		Port:          *port,
 		StaticDir:     *staticDir,
-		DataDir:       *dataDir,
+		ActivitiesDir: *activitiesDir,
+		PlansDir:      *plansDir,
 		CacheDir:      *cacheDir,
 		ClientTimeout: *clientTimeout,
 		MaxRetries:    *maxRetries,
@@ -165,13 +176,13 @@ func Parse(fs *flag.FlagSet, args []string) (*Config, error) {
 
 func defaultProviders() map[string]TileProviderConfig {
 	return map[string]TileProviderConfig{
-			"openstreetmap": {
-				Name:        "OpenStreetMap",
-				URLTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-				IsTMS:       false,
-				Attribution: "© OpenStreetMap contributors",
-				ZoomRange:   [2]int{0, 18},
-			},
+		"openstreetmap": {
+			Name:        "OpenStreetMap",
+			URLTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+			IsTMS:       false,
+			Attribution: "© OpenStreetMap contributors",
+			ZoomRange:   [2]int{0, 18},
+		},
 		"opentopomap": {
 			Name:        "OpenTopoMap",
 			URLTemplate: "https://c.tile.opentopomap.org/{z}/{x}/{y}.png",

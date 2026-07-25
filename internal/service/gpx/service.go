@@ -13,12 +13,16 @@ import (
 )
 
 type Service struct {
-	DataDir string
-	Cache   *cache.Cache
+	ActivitiesDir string
+	PlansDir      string
+	Cache         *cache.Cache
 }
 
-func NewService(dataDir string) *Service {
-	return &Service{DataDir: dataDir}
+func NewService(activitiesDir, plansDir string) *Service {
+	return &Service{
+		ActivitiesDir: activitiesDir,
+		PlansDir:      plansDir,
+	}
 }
 
 func (s *Service) ListFiles(ctx context.Context) ([]model.GPXFile, error) {
@@ -28,13 +32,19 @@ func (s *Service) ListFiles(ctx context.Context) ([]model.GPXFile, error) {
 	var files []model.GPXFile
 	cacheUpdated := false
 
-	scanRoots := []string{"Activities", "Plans"}
+	scanRoots := []struct {
+		name string
+		path string
+	}{
+		{name: "Activities", path: s.ActivitiesDir},
+		{name: "Plans", path: s.PlansDir},
+	}
 
 	for _, root := range scanRoots {
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
-		rootPath := filepath.Join(s.DataDir, root)
+		rootPath := root.path
 		info, err := os.Stat(rootPath)
 		if err != nil {
 			if os.IsNotExist(err) {
@@ -54,11 +64,11 @@ func (s *Service) ListFiles(ctx context.Context) ([]model.GPXFile, error) {
 				return err
 			}
 			if !d.IsDir() && strings.HasSuffix(strings.ToLower(d.Name()), ".gpx") {
-				relPath, err := filepath.Rel(s.DataDir, path)
+				relPath, err := filepath.Rel(rootPath, path)
 				if err != nil {
 					return err
 				}
-				relPath = filepath.ToSlash(relPath)
+				relPath = filepath.ToSlash(filepath.Join(root.name, relPath))
 
 				var metadata *model.GPXMetadata
 				if s.Cache != nil {

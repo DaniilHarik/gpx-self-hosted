@@ -13,7 +13,7 @@ import (
 func TestService_ListFiles_Caching(t *testing.T) {
 	dataDir := t.TempDir()
 	cacheFile := filepath.Join(t.TempDir(), "cache.json")
-	
+
 	// Create a dummy GPX file
 	gpxPath := filepath.Join(dataDir, "Activities", "test.gpx")
 	if err := os.MkdirAll(filepath.Dir(gpxPath), 0755); err != nil {
@@ -34,7 +34,10 @@ func TestService_ListFiles_Caching(t *testing.T) {
 	}
 
 	c := cache.NewCache(cacheFile)
-	svc := NewService(dataDir)
+	svc := NewService(
+		filepath.Join(dataDir, "Activities"),
+		filepath.Join(dataDir, "Plans"),
+	)
 	svc.Cache = c // This will fail to compile initially as svc.Cache doesn't exist
 
 	// First call: should parse and cache
@@ -54,11 +57,11 @@ func TestService_ListFiles_Caching(t *testing.T) {
 
 	// Verify it's in the cache
 	if _, ok := c.Get("Activities/test.gpx", 0, 0); !ok {
-		// Note: we don't know the exact size/modtime here easily, 
+		// Note: we don't know the exact size/modtime here easily,
 		// but the service should have called Set.
 		// We can check if the cache file exists after Save.
 	}
-	
+
 	if err := c.Save(); err != nil {
 		t.Fatal(err)
 	}
@@ -68,10 +71,10 @@ func TestService_ListFiles_Caching(t *testing.T) {
 
 	// Modify the GPX file to test invalidation
 	time.Sleep(time.Second) // Ensure modTime changes
-	if err := os.WriteFile(gpxPath, []byte(gpxContent + " "), 0644); err != nil {
+	if err := os.WriteFile(gpxPath, []byte(gpxContent+" "), 0644); err != nil {
 		t.Fatal(err)
 	}
-	
+
 	files2, err := svc.ListFiles(context.Background())
 	if err != nil {
 		t.Fatal(err)

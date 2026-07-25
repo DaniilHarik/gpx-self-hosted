@@ -30,7 +30,7 @@
 
 ## Commands
 
-- Run: `./run.sh` or `go run ./cmd/gpx-self-host`.
+- Run: `./start.sh` or `go run ./cmd/gpx-self-host`.
 - Backend tests: `go test ./...`.
 - Frontend tests: `npm test`.
 - Before visual testing, check `http://localhost:8080/` and reuse a reachable

@@ -38,3 +38,5 @@ coverage
 coverage.out
 
 .codex
+
+run.sh

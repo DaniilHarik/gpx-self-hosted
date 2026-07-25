@@ -13,7 +13,8 @@ import (
 
 func TestServerRegistersStaticAndDataRoutes(t *testing.T) {
 	staticDir := t.TempDir()
-	dataDir := t.TempDir()
+	activitiesDir := t.TempDir()
+	plansDir := t.TempDir()
 	cacheDir := t.TempDir()
 
 	indexContent := []byte("<html>ok</html>")
@@ -21,19 +22,20 @@ func TestServerRegistersStaticAndDataRoutes(t *testing.T) {
 		t.Fatalf("failed to seed static file: %v", err)
 	}
 
-	gpxContent := []byte("gpx data")
-	activitiesDir := filepath.Join(dataDir, "Activities")
-	if err := os.MkdirAll(activitiesDir, 0755); err != nil {
-		t.Fatalf("failed to seed Activities dir: %v", err)
+	activityContent := []byte("activity data")
+	if err := os.WriteFile(filepath.Join(activitiesDir, "track.gpx"), activityContent, 0644); err != nil {
+		t.Fatalf("failed to seed activity file: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(activitiesDir, "track.gpx"), gpxContent, 0644); err != nil {
-		t.Fatalf("failed to seed data file: %v", err)
+	planContent := []byte("plan data")
+	if err := os.WriteFile(filepath.Join(plansDir, "plan.gpx"), planContent, 0644); err != nil {
+		t.Fatalf("failed to seed plan file: %v", err)
 	}
 
 	cfg := &config.Config{
-		StaticDir: staticDir,
-		DataDir:   dataDir,
-		CacheDir:  cacheDir,
+		StaticDir:     staticDir,
+		ActivitiesDir: activitiesDir,
+		PlansDir:      plansDir,
+		CacheDir:      cacheDir,
 	}
 	srv := New(cfg)
 	ts := httptest.NewServer(srv.Handler())
@@ -59,7 +61,7 @@ func TestServerRegistersStaticAndDataRoutes(t *testing.T) {
 		}
 	})
 
-	t.Run("data files served", func(t *testing.T) {
+	t.Run("activity files served", func(t *testing.T) {
 		resp, err := ts.Client().Get(ts.URL + "/data/Activities/track.gpx")
 		if err != nil {
 			t.Fatalf("request failed: %v", err)
@@ -74,8 +76,28 @@ func TestServerRegistersStaticAndDataRoutes(t *testing.T) {
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("expected 200 for data file, got %d", resp.StatusCode)
 		}
-		if string(body) != string(gpxContent) {
-			t.Fatalf("unexpected data body: %q", string(body))
+		if string(body) != string(activityContent) {
+			t.Fatalf("unexpected activity body: %q", string(body))
+		}
+	})
+
+	t.Run("plan files served", func(t *testing.T) {
+		resp, err := ts.Client().Get(ts.URL + "/data/Plans/plan.gpx")
+		if err != nil {
+			t.Fatalf("request failed: %v", err)
+		}
+		defer resp.Body.Close()
+
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatalf("failed to read response body: %v", err)
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200 for plan file, got %d", resp.StatusCode)
+		}
+		if string(body) != string(planContent) {
+			t.Fatalf("unexpected plan body: %q", string(body))
 		}
 	})
 }

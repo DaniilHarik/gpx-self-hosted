@@ -1,6 +1,6 @@
 # Security and Reliability
 
-Updated: 2026-07-24
+Updated: 2026-07-25
 
 ## Deployment model
 
@@ -8,9 +8,10 @@ This application is designed for a local machine or trusted network. It has no
 authentication or authorization and should not be exposed directly to the
 public internet.
 
-GPX files remain on the host, but the server exposes the configured data
-directory under `/data/`. Online map use sends tile requests to the configured
-providers. The browser also loads frontend dependencies from third-party CDNs.
+GPX files remain on the host, but the server exposes the configured activity
+and plan directories under `/data/Activities/` and `/data/Plans/`. Online map
+use sends tile requests to the configured providers. The browser also loads
+frontend dependencies from third-party CDNs.
 
 ## Existing controls
 
@@ -25,8 +26,10 @@ providers. The browser also loads frontend dependencies from third-party CDNs.
 
 ## Known risks
 
-- `/data/` uses `http.FileServer`, which permits directory listings and can
-  follow symlinks outside the configured data directory.
+- The GPX data routes use `http.FileServer`, which permits directory listings
+  and can follow symlinks outside the configured activity or plan directory.
+- Startup logs include the configured activity and plan filesystem paths.
+  Protect logs if those paths reveal sensitive account or mount names.
 - Concurrent cache misses for the same tile are not deduplicated and can race
   on the final cache write.
 - The tile cache has no quota, TTL, or eviction policy.

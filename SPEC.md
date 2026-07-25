@@ -1,6 +1,6 @@
 # Self-Hosted GPX Viewer Product Spec
 
-Updated: 2026-07-24
+Updated: 2026-07-25
 
 ## Scope
 
@@ -19,10 +19,13 @@ Setup and configuration documentation belong in `README.md`.
 
 ## Content model
 
-- Activity tracks are `.gpx` files below `data/Activities/`.
-- Plans are `.gpx` files below `data/Plans/`.
+- Activity tracks are `.gpx` files below the configured activity root, which
+  defaults to `data/Activities/`.
+- Plans are `.gpx` files below the configured plans root, which defaults to
+  `data/Plans/`.
+- Activity and plan roots can be configured independently.
 - Nested folders are supported.
-- An activity is derived from the first folder below `Activities/`.
+- An activity is derived from the first folder below the activity root.
 - File matching is case-insensitive.
 - The API exposes each item with `name`, `path`, `relativePath`, and optional
   cached metadata.
@@ -85,12 +88,14 @@ Setup and configuration documentation belong in `README.md`.
 ## Server behavior
 
 - Configuration precedence is CLI, JSON, environment variables, then defaults.
+- Startup logs report the configured activity and plan source directories.
 - `GET /api/gpx` lists activity tracks and plans.
 - `GET /api/tile-config` returns client-safe provider settings, the initial
   provider, and offline state with `Cache-Control: no-store`.
 - `GET /api/status` returns process-lifetime tile cache counters with
   `Cache-Control: no-store`.
-- `/data/` serves source GPX files.
+- `/data/Activities/` and `/data/Plans/` serve source GPX files from their
+  independently configured roots.
 - `/tiles/{provider}/{z}/{x}/{y}.(png|jpg)` validates the provider token, numeric
   coordinates, and extension before accessing the cache or upstream.
 - Cached tiles retain the requested extension.

@@ -5,7 +5,7 @@ import "time"
 type GPXFile struct {
 	Name         string       `json:"name"`
 	Path         string       `json:"path"`         // Relative path for fetching (with /data/ prefix)
-	RelativePath string       `json:"relativePath"` // Path inside data dir, useful for displaying folders
+	RelativePath string       `json:"relativePath"` // Logical Activities/ or Plans/ path for display
 	Metadata     *GPXMetadata `json:"metadata,omitempty"`
 }
 

@@ -23,6 +23,12 @@ func TestParse_Defaults(t *testing.T) {
 	if cfg.MaxRetries != 3 {
 		t.Errorf("expected max retries 3, got %d", cfg.MaxRetries)
 	}
+	if cfg.ActivitiesDir != "./data/Activities" {
+		t.Errorf("expected default activities dir, got %s", cfg.ActivitiesDir)
+	}
+	if cfg.PlansDir != "./data/Plans" {
+		t.Errorf("expected default plans dir, got %s", cfg.PlansDir)
+	}
 	if cfg.Offline != false {
 		t.Error("expected offline false")
 	}
@@ -41,7 +47,8 @@ func TestParse_CustomFlags(t *testing.T) {
 	args := []string{
 		"-port", ":9090",
 		"-static-dir", "/tmp/static",
-		"-data-dir", "/tmp/data",
+		"-activities-dir", "/tracks",
+		"-plans-dir", "/routes",
 		"-cache-dir", "/tmp/cache",
 		"-client-timeout", "5s",
 		"-max-retries", "5",
@@ -59,8 +66,11 @@ func TestParse_CustomFlags(t *testing.T) {
 	if cfg.StaticDir != "/tmp/static" {
 		t.Errorf("expected static-dir /tmp/static, got %s", cfg.StaticDir)
 	}
-	if cfg.DataDir != "/tmp/data" {
-		t.Errorf("expected data-dir /tmp/data, got %s", cfg.DataDir)
+	if cfg.ActivitiesDir != "/tracks" {
+		t.Errorf("expected activities-dir /tracks, got %s", cfg.ActivitiesDir)
+	}
+	if cfg.PlansDir != "/routes" {
+		t.Errorf("expected plans-dir /routes, got %s", cfg.PlansDir)
 	}
 	if cfg.CacheDir != "/tmp/cache" {
 		t.Errorf("expected cache-dir /tmp/cache, got %s", cfg.CacheDir)
@@ -88,7 +98,8 @@ func TestParse_EnvironmentVariables(t *testing.T) {
 	// Set environment variables
 	t.Setenv("GPX_SELF_HOST_PORT", ":7070")
 	t.Setenv("GPX_SELF_HOST_STATIC_DIR", "/env/static")
-	t.Setenv("GPX_SELF_HOST_DATA_DIR", "/env/data")
+	t.Setenv("GPX_SELF_HOST_ACTIVITIES_DIR", "/env/tracks")
+	t.Setenv("GPX_SELF_HOST_PLANS_DIR", "/env/routes")
 	t.Setenv("GPX_SELF_HOST_CACHE_DIR", "/env/cache")
 	t.Setenv("GPX_SELF_HOST_CLIENT_TIMEOUT", "15s")
 	t.Setenv("GPX_SELF_HOST_MAX_RETRIES", "10")
@@ -107,8 +118,11 @@ func TestParse_EnvironmentVariables(t *testing.T) {
 	if cfg.StaticDir != "/env/static" {
 		t.Errorf("expected static dir /env/static from env, got %s", cfg.StaticDir)
 	}
-	if cfg.DataDir != "/env/data" {
-		t.Errorf("expected data dir /env/data from env, got %s", cfg.DataDir)
+	if cfg.ActivitiesDir != "/env/tracks" {
+		t.Errorf("expected activities dir /env/tracks from env, got %s", cfg.ActivitiesDir)
+	}
+	if cfg.PlansDir != "/env/routes" {
+		t.Errorf("expected plans dir /env/routes from env, got %s", cfg.PlansDir)
 	}
 	if cfg.CacheDir != "/env/cache" {
 		t.Errorf("expected cache dir /env/cache from env, got %s", cfg.CacheDir)
@@ -128,7 +142,8 @@ func TestParse_JSONConfig(t *testing.T) {
 	configContent := `{
 		"Port": ":6060",
 		"StaticDir": "/json/static",
-		"DataDir": "/json/data",
+		"ActivitiesDir": "/json/tracks",
+		"PlansDir": "/json/routes",
 		"CacheDir": "/json/cache",
 		"ClientTimeout": 20000000000,
 		"MaxRetries": 15,
@@ -161,6 +176,12 @@ func TestParse_JSONConfig(t *testing.T) {
 	if cfg.StaticDir != "/json/static" {
 		t.Errorf("expected static dir /json/static from JSON, got %s", cfg.StaticDir)
 	}
+	if cfg.ActivitiesDir != "/json/tracks" {
+		t.Errorf("expected activities dir /json/tracks from JSON, got %s", cfg.ActivitiesDir)
+	}
+	if cfg.PlansDir != "/json/routes" {
+		t.Errorf("expected plans dir /json/routes from JSON, got %s", cfg.PlansDir)
+	}
 	if cfg.Providers["custom"].Name != "Custom Provider" {
 		t.Errorf("expected custom provider, got %v", cfg.Providers["custom"].Name)
 	}
@@ -174,9 +195,10 @@ func TestParse_FullPrecedence(t *testing.T) {
 	// ENV: Port :7070, StaticDir /env/static
 	t.Setenv("GPX_SELF_HOST_PORT", ":7070")
 	t.Setenv("GPX_SELF_HOST_STATIC_DIR", "/env/static")
+	t.Setenv("GPX_SELF_HOST_ACTIVITIES_DIR", "/env/tracks")
 
-	// JSON: Port :6060, DataDir /json/data
-	configContent := `{"Port": ":6060", "DataDir": "/json/data"}`
+	// JSON: Port :6060, ActivitiesDir /json/tracks
+	configContent := `{"Port": ":6060", "ActivitiesDir": "/json/tracks"}`
 	err := os.WriteFile("config.json", []byte(configContent), 0644)
 	if err != nil {
 		t.Fatalf("failed to create config.json: %v", err)
@@ -197,8 +219,8 @@ func TestParse_FullPrecedence(t *testing.T) {
 		t.Errorf("expected port :5050 (CLI), got %s", cfg.Port)
 	}
 	// JSON overrides ENV
-	if cfg.DataDir != "/json/data" {
-		t.Errorf("expected data dir /json/data (JSON), got %s", cfg.DataDir)
+	if cfg.ActivitiesDir != "/json/tracks" {
+		t.Errorf("expected activities dir /json/tracks (JSON), got %s", cfg.ActivitiesDir)
 	}
 	// ENV overrides Default
 	if cfg.StaticDir != "/env/static" {

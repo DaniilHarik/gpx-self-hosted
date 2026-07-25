@@ -1,5 +1,7 @@
 # Lessons
 
+- Keep checked-in configuration portable; use a non-versioned runtime override for machine-specific filesystem paths.
+- When activity and plan sources are configured independently, do not retain a shared data-root option solely for backward compatibility unless requested.
 - When exporting Leaflet SVG overlays to canvas, do not serialize renderer SVGs with runtime CSS transform intact. Normalize root SVG transform before drawing to avoid map/track offset in exported images.
 - When applying provider-specific network-policy fixes, scope them to the exact provider that requires them instead of changing outbound headers for every tile source.
 - For map coordinate copy UX in this app, avoid live `mousemove` updates. Prefer deliberate click-based selection so the readout stays stable and copyable.
