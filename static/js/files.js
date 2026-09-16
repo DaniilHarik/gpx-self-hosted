@@ -3,7 +3,7 @@
  */
 import { state, ui, constants } from './state.js';
 import * as utils from './utils.js';
-import { focusTrack, toggleTrackVisibility } from './tracks.js';
+import { focusTrack, toggleTrackVisibility, retryTrack, updateTrackListItem } from './tracks.js';
 
 export function setView(nextView) {
     const normalized = nextView === 'plans' ? 'plans' : 'activities';
@@ -293,9 +293,28 @@ function createFileListItem(file) {
     }
 
     const infoDiv = createTrackInfo(file);
+    const status = document.createElement('div');
+    status.className = 'track-load-status';
+    status.hidden = true;
+    const message = document.createElement('span');
+    message.className = 'track-load-message';
+    message.setAttribute('role', 'status');
+    const retry = document.createElement('button');
+    retry.type = 'button';
+    retry.className = 'track-retry';
+    retry.textContent = 'Retry';
+    retry.setAttribute('aria-label', `Retry loading ${file.name}`);
+    retry.hidden = true;
+    retry.addEventListener('click', event => {
+        event.stopPropagation();
+        retryTrack(file.path);
+    });
+    status.append(message, retry);
+    infoDiv.appendChild(status);
     li.appendChild(infoDiv);
     li.title = file.relativePath || file.name;
     li.addEventListener('click', () => { focusTrack(file.path, file.name); });
+    updateTrackListItem(li);
     return li;
 }
 

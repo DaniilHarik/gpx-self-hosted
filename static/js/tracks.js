@@ -51,16 +51,24 @@ export function focusTrack(path, name) {
     state.loadedTracks.forEach((_, p) => { if (p !== path) toRemove.push(p); });
     toRemove.forEach(p => removeTrack(p));
 
-    if (!state.loadedTracks.has(path)) {
-        addTrack(path, name);
-    } else {
-        const track = state.loadedTracks.get(path);
+    state.focusedTrackPath = path;
+    let pending;
+    const track = state.loadedTracks.get(path);
+    if (!track) {
+        pending = addTrack(path, name);
+    } else if (track.status === 'error') {
+        pending = retryTrack(path);
+    } else if (track.status === 'ready') {
+        state.pendingFitTrack = null;
         state.map.fitBounds(track.layer.getBounds());
+    } else {
+        state.pendingFitTrack = track;
+        pending = track.pending;
     }
 
-    state.focusedTrackPath = path;
     updateInfoPanelWithTrack(path);
     updateListSelectionState();
+    return pending;
 }
 
 export function toggleTrackVisibility(path, name, shouldShow) {
@@ -73,33 +81,35 @@ export function toggleTrackVisibility(path, name, shouldShow) {
 }
 
 export function addTrack(path, name) {
-    if (state.loadedTracks.has(path)) return;
+    if (state.loadedTracks.has(path)) return state.loadedTracks.get(path).pending;
 
     const usedColors = new Set(Array.from(state.loadedTracks.values()).map(t => t.color));
     const color = constants.TRACK_COLORS.find(c => !usedColors.has(c)) || constants.TRACK_COLORS[state.loadedTracks.size % constants.TRACK_COLORS.length];
 
-    ui.infoPanel.classList.add('hidden');
-    state.loadedTracks.set(path, { layer: null, name, color });
+    return startTrackLoad(path, name, color);
+}
 
-    const layer = createTrackLayer(path, name, color);
-
-    state.loadedTracks.get(path).layer = layer;
+export function retryTrack(path) {
+    const track = state.loadedTracks.get(path);
+    if (!track || track.status !== 'error') return;
+    return startTrackLoad(path, track.name, track.color);
 }
 
 export function removeTrack(path) {
     if (state.loadedTracks.has(path)) {
         const track = state.loadedTracks.get(path);
-        state.map.removeLayer(track.layer);
         state.loadedTracks.delete(path);
+        track.controller.abort();
+        if (track.layer) state.map.removeLayer(track.layer);
+        if (state.pendingFitTrack === track) state.pendingFitTrack = null;
 
         if (state.focusedTrackPath === path) {
             state.focusedTrackPath = null;
             ui.infoPanel.classList.add('hidden');
             if (state.loadedTracks.size > 0) {
                 const nextPath = state.loadedTracks.keys().next().value;
-                const nextTrack = state.loadedTracks.get(nextPath);
                 state.focusedTrackPath = nextPath;
-                updateInfoPanel(nextTrack.layer, nextTrack.name);
+                updateInfoPanelWithTrack(nextPath);
             }
         }
         updateListSelectionState();
@@ -108,34 +118,46 @@ export function removeTrack(path) {
 
 export function updateInfoPanelWithTrack(path) {
     const track = state.loadedTracks.get(path);
-    if (track && track.layer.get_distance) {
+    if (track?.status === 'ready') {
         updateInfoPanel(track.layer, track.name);
+    } else {
+        ui.infoPanel.classList.add('hidden');
     }
 }
 
 export function updateListSelectionState() {
-    const lis = document.querySelectorAll('#file-list li');
-    lis.forEach(li => {
-        const path = li.dataset.path;
-        const track = state.loadedTracks.get(path);
-        const checkbox = li.querySelector('.track-select-cb');
+    document.querySelectorAll('#file-list li[data-path]').forEach(updateTrackListItem);
+}
 
-        if (track) {
-            if (checkbox) {
-                checkbox.checked = true;
-                checkbox.style.accentColor = track.color;
-            }
-            li.style.borderLeft = `4px solid ${track.color}`;
-            li.classList.toggle('active', path === state.focusedTrackPath);
-        } else {
-            if (checkbox) {
-                checkbox.checked = false;
-                checkbox.style.accentColor = '';
-            }
-            li.style.borderLeft = '';
-            li.classList.remove('active');
+export function updateTrackListItem(li) {
+    const path = li.dataset.path;
+    const track = state.loadedTracks.get(path);
+    const checkbox = li.querySelector('.track-select-cb');
+
+    if (track) {
+        if (checkbox) {
+            checkbox.checked = true;
+            checkbox.style.accentColor = track.color;
         }
-    });
+        li.style.borderLeft = `4px solid ${track.color}`;
+        li.classList.toggle('active', path === state.focusedTrackPath);
+    } else {
+        if (checkbox) {
+            checkbox.checked = false;
+            checkbox.style.accentColor = '';
+        }
+        li.style.borderLeft = '';
+        li.classList.remove('active');
+    }
+    const status = li.querySelector('.track-load-status');
+    if (status) {
+        const isLoading = track?.status === 'loading';
+        const isError = track?.status === 'error';
+        li.dataset.loadState = track?.status || 'idle';
+        status.hidden = !isLoading && !isError;
+        status.querySelector('.track-load-message').textContent = isLoading ? 'Loading track...' : (track?.error || '');
+        status.querySelector('.track-retry').hidden = !isError;
+    }
 }
 
 export function updateInfoPanel(gpx, name) {
@@ -180,9 +202,71 @@ function updateMultiTrackToggleUi(toggleBtn) {
     }
 }
 
-function createTrackLayer(path, name, color, { fitOnLoad = true } = {}) {
-    return new L.GPX(path, {
-        async: true,
+function startTrackLoad(path, name, color, { fitOnLoad = true } = {}) {
+    const track = { layer: null, name, color, status: 'loading', controller: new AbortController() };
+    state.loadedTracks.set(path, track);
+    if (!state.focusedTrackPath) state.focusedTrackPath = path;
+    if (fitOnLoad) state.pendingFitTrack = track;
+    updateInfoPanelWithTrack(state.focusedTrackPath);
+    updateListSelectionState();
+    track.pending = loadTrack(path, track);
+    return track.pending;
+}
+
+async function loadTrack(path, track) {
+    const isCurrent = () => state.loadedTracks.get(path) === track;
+    const timeout = setTimeout(() => track.controller.abort(), 30000);
+    let failureMessage = 'Could not download this track.';
+    try {
+        const response = await fetch(path, { signal: track.controller.signal });
+        if (!response.ok) {
+            if (response.status === 404) failureMessage = 'Track file not found.';
+            throw new Error('Track request failed');
+        }
+        const text = (await response.text()).trim();
+        if (!isCurrent()) return;
+        if (track.controller.signal.aborted) throw new Error('Track request timed out');
+
+        failureMessage = 'Could not read this GPX file.';
+        const xml = new DOMParser().parseFromString(text, 'application/xml');
+        if (xml.querySelector('parsererror') || xml.documentElement.localName !== 'gpx') {
+            throw new Error('Invalid GPX document');
+        }
+
+        // Parse downloaded XML synchronously so parser failures stay in this
+        // try/catch. Leaflet GPX's URL loader does not report HTTP failures.
+        const layer = createTrackLayer(text, track.color);
+        const bounds = layer.getBounds();
+        if (!bounds.isValid()) {
+            failureMessage = 'This GPX file has no map points.';
+            throw new Error('Empty GPX layer');
+        }
+        track.layer = layer;
+        layer.addTo(state.map);
+        track.status = 'ready';
+        if (state.pendingFitTrack === track) {
+            state.pendingFitTrack = null;
+            state.map.fitBounds(bounds);
+        }
+    } catch {
+        if (!isCurrent()) return;
+        if (track.layer) state.map.removeLayer(track.layer);
+        track.layer = null;
+        track.status = 'error';
+        track.error = track.controller.signal.aborted ? 'Track load timed out.' : failureMessage;
+        if (state.pendingFitTrack === track) state.pendingFitTrack = null;
+    } finally {
+        clearTimeout(timeout);
+        if (isCurrent()) {
+            updateInfoPanelWithTrack(state.focusedTrackPath);
+            updateListSelectionState();
+        }
+    }
+}
+
+function createTrackLayer(xml, color) {
+    return new L.GPX(xml, {
+        async: false,
         marker_options: getMarkerOptions(),
         polyline_options: {
             color: color,
@@ -190,16 +274,7 @@ function createTrackLayer(path, name, color, { fitOnLoad = true } = {}) {
             weight: 3,
             lineCap: 'round'
         }
-    }).on('loaded', function (e) {
-        if (fitOnLoad) {
-            state.map.fitBounds(e.target.getBounds());
-        }
-        if (state.focusedTrackPath === path || !state.focusedTrackPath) {
-            state.focusedTrackPath = path;
-            updateInfoPanel(e.target, name);
-            updateListSelectionState();
-        }
-    }).addTo(state.map);
+    });
 }
 
 function getMarkerOptions() {
@@ -217,25 +292,11 @@ function getMarkerOptions() {
 }
 
 function refreshLoadedTrackLayers() {
-    if (state.loadedTracks.size === 0) return;
-
-    const tracks = Array.from(state.loadedTracks.entries()).map(([path, track]) => ({
-        path,
-        name: track.name,
-        color: track.color,
-        layer: track.layer
-    }));
-
-    tracks.forEach(track => {
-        state.map.removeLayer(track.layer);
+    Array.from(state.loadedTracks.entries()).forEach(([path, track]) => {
+        if (track.status === 'error') return;
+        track.controller.abort();
+        if (track.layer) state.map.removeLayer(track.layer);
+        const fitOnLoad = state.pendingFitTrack === track;
+        startTrackLoad(path, track.name, track.color, { fitOnLoad });
     });
-
-    state.loadedTracks.clear();
-
-    tracks.forEach(track => {
-        const layer = createTrackLayer(track.path, track.name, track.color, { fitOnLoad: false });
-        state.loadedTracks.set(track.path, { layer, name: track.name, color: track.color });
-    });
-
-    updateListSelectionState();
 }

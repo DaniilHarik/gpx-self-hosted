@@ -1,6 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 
+const validGpx = '<gpx><trk><trkseg><trkpt lat="58" lon="25"/><trkpt lat="59" lon="26"/></trkseg></trk></gpx>';
+const settleTrackLoads = () => new Promise(resolve => setTimeout(resolve, 0));
+
 const defaultGpxFiles = [
     { name: '2023-01-01_Run.gpx', path: '/data/Activities/runs/2023-01-01_Run.gpx', relativePath: 'Activities/runs/2023-01-01_Run.gpx' },
     { name: '2023-01-02_Walk.gpx', path: '/data/Activities/walks/2023-01-02_Walk.gpx', relativePath: 'Activities/walks/2023-01-02_Walk.gpx' },
@@ -25,6 +28,8 @@ async function bootstrapApp(options = {}) {
         tileLayerFactory,
         controlLayers,
         captureExportHandler = false,
+        trackFetch,
+        trackLayerFactory,
         initialTheme = 'dark'
     } = options;
 
@@ -202,7 +207,7 @@ async function bootstrapApp(options = {}) {
             return this;
         }),
         addTo: jest.fn().mockReturnThis(),
-        getBounds: jest.fn(),
+        getBounds: jest.fn(() => ({ isValid: () => true })),
         get_distance: jest.fn(() => 10000), // 10km
         get_total_time: jest.fn(() => 3600000), // 1h
         get_moving_time: jest.fn(() => 3000000), // 50m
@@ -230,7 +235,7 @@ async function bootstrapApp(options = {}) {
         control: {
             layers: controlLayersFn
         },
-        GPX: jest.fn(() => gpxMock),
+        GPX: jest.fn(trackLayerFactory || (() => gpxMock)),
         FeatureGroup: jest.fn(() => featureGroupMock),
         Control: {
             Draw: jest.fn(() => ({
@@ -262,7 +267,7 @@ async function bootstrapApp(options = {}) {
 
 
 
-    global.fetch = jest.fn((url) => {
+    global.fetch = jest.fn((url, options) => {
         if (url === '/api/tile-config') {
             if (tileConfigError) {
                 return Promise.reject(tileConfigError);
@@ -276,7 +281,8 @@ async function bootstrapApp(options = {}) {
                 json: () => Promise.resolve(gpxFiles)
             });
         }
-        return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) });
+        if (trackFetch) return trackFetch(url, options);
+        return Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve(validGpx), json: () => Promise.resolve({}) });
     });
 
     const app = await import('../app.js');
@@ -298,6 +304,219 @@ async function bootstrapApp(options = {}) {
         gpxMock
     };
 }
+
+describe('Track loading', () => {
+    const walk = defaultGpxFiles[1];
+    const run = defaultGpxFiles[0];
+    const row = file => Array.from(document.querySelectorAll('#file-list li[data-path]')).find(li => li.dataset.path === file.path);
+    const response = (text = validGpx) => ({ ok: true, status: 200, text: () => Promise.resolve(text) });
+
+    function deferredFetch() {
+        const requests = [];
+        const fetch = (url, { signal }) => new Promise((resolve, reject) => {
+            // Deliberately allow completion after abort to exercise stale responses.
+            requests.push({ url, signal, resolve, reject });
+        });
+        return { requests, fetch };
+    }
+
+    test('shows loading, reuses a pending request, and fetches encoded paths unchanged', async () => {
+        const file = { name: 'route #2%.gpx', path: '/data/Plans/route%20%232%25.gpx', relativePath: 'Plans/route #2%.gpx' };
+        const pending = deferredFetch();
+        const { app, mapMock } = await bootstrapApp({ gpxFiles: [file], trackFetch: pending.fetch });
+        document.querySelector('[data-view="plans"]').click();
+        const load = app.focusTrack(file.path, file.name);
+        expect(row(file).textContent).toContain('Loading track...');
+        expect(row(file).dataset.loadState).toBe('loading');
+        expect(document.getElementById('info-panel').classList.contains('hidden')).toBe(true);
+        expect(mapMock.fitBounds).not.toHaveBeenCalled();
+        row(file).click();
+        expect(pending.requests).toHaveLength(1);
+        expect(pending.requests[0].url).toBe(file.path);
+
+        pending.requests[0].resolve(response('\uFEFF  \n' + validGpx));
+        await load;
+        expect(row(file).dataset.loadState).toBe('ready');
+        expect(row(file).querySelector('.track-load-status').hidden).toBe(true);
+        expect(document.getElementById('track-name').textContent).toBe(file.name);
+        expect(global.L.GPX).toHaveBeenCalledWith(validGpx, expect.objectContaining({ async: false }));
+        expect(mapMock.fitBounds).toHaveBeenCalledTimes(1);
+        row(file).click();
+        expect(pending.requests).toHaveLength(1);
+        expect(mapMock.fitBounds).toHaveBeenCalledTimes(2);
+    });
+
+    test.each(['success', 'failure'])('ignores obsolete %s after selecting the same path again', async result => {
+        const pending = deferredFetch();
+        const { app, mapMock } = await bootstrapApp({ trackFetch: pending.fetch });
+        const oldWalk = app.focusTrack(walk.path, walk.name);
+        const oldRun = app.focusTrack(run.path, run.name);
+        const newWalk = app.focusTrack(walk.path, walk.name);
+        expect(pending.requests[0].signal.aborted).toBe(true);
+        expect(pending.requests[1].signal.aborted).toBe(true);
+        pending.requests[2].resolve(response());
+        await newWalk;
+        pending.requests[1].resolve(response());
+        if (result === 'success') pending.requests[0].resolve(response());
+        else pending.requests[0].reject(new Error('Late failure'));
+        await Promise.all([oldWalk, oldRun]);
+        expect(global.L.GPX).toHaveBeenCalledTimes(1);
+        expect(mapMock.fitBounds).toHaveBeenCalledTimes(1);
+        expect(document.getElementById('track-name').textContent).toBe(walk.name);
+        expect(row(walk).dataset.loadState).toBe('ready');
+        expect(row(run).dataset.loadState).toBe('idle');
+    });
+
+    test('a removed track cannot move the map when its response arrives last', async () => {
+        const pending = deferredFetch();
+        const { app, mapMock } = await bootstrapApp({ trackFetch: pending.fetch });
+        const first = app.focusTrack(walk.path, walk.name);
+        const second = app.focusTrack(run.path, run.name);
+        pending.requests[1].resolve(response());
+        await second;
+        pending.requests[0].resolve(response());
+        await first;
+        expect(global.L.GPX).toHaveBeenCalledTimes(1);
+        expect(mapMock.fitBounds).toHaveBeenCalledTimes(1);
+        expect(document.getElementById('track-name').textContent).toBe(run.name);
+    });
+
+    test('only the latest selected track fits the map when multi-track downloads finish out of order', async () => {
+        const pending = deferredFetch();
+        const { app, mapMock } = await bootstrapApp({ trackFetch: pending.fetch });
+        document.getElementById('toggle-multi-track').click();
+        const first = app.addTrack(walk.path, walk.name);
+        const second = app.addTrack(run.path, run.name);
+        pending.requests[1].resolve(response());
+        await second;
+        pending.requests[0].resolve(response());
+        await first;
+        expect(global.L.GPX).toHaveBeenCalledTimes(2);
+        expect(mapMock.fitBounds).toHaveBeenCalledTimes(1);
+        expect(document.getElementById('track-name').textContent).toBe(walk.name);
+        expect(row(walk).querySelector('input').checked).toBe(true);
+        expect(row(run).querySelector('input').checked).toBe(true);
+    });
+
+    test('retry survives a list refresh and preserves other tracks and the failed track color', async () => {
+        const pending = deferredFetch();
+        const { app, mapMock } = await bootstrapApp({ trackFetch: pending.fetch });
+        document.getElementById('toggle-multi-track').click();
+        const first = app.addTrack(walk.path, walk.name);
+        const second = app.addTrack(run.path, run.name);
+        pending.requests[0].resolve({ ok: false, status: 404 });
+        pending.requests[1].resolve(response());
+        await Promise.all([first, second]);
+        expect(row(walk).textContent).toContain('Track file not found.');
+
+        const input = document.getElementById('filesearch');
+        input.dispatchEvent(new Event('input'));
+        const retry = row(walk).querySelector('.track-retry');
+        expect(retry.hidden).toBe(false);
+        expect(retry.getAttribute('aria-label')).toBe(`Retry loading ${walk.name}`);
+        retry.click();
+        expect(row(walk).textContent).toContain('Loading track...');
+        expect(row(run).querySelector('input').checked).toBe(true);
+        expect(mapMock.removeLayer).not.toHaveBeenCalled();
+        pending.requests[2].resolve(response());
+        await settleTrackLoads();
+        expect(row(walk).dataset.loadState).toBe('ready');
+        expect(global.L.GPX).toHaveBeenLastCalledWith(validGpx, expect.objectContaining({ polyline_options: expect.objectContaining({ color: '#0000FF' }) }));
+    });
+
+    test.each([
+        ['network failure', () => Promise.reject(new Error('Network down')), 'Could not download this track.'],
+        ['HTTP failure', () => Promise.resolve({ ok: false, status: 500 }), 'Could not download this track.'],
+        ['body failure', () => Promise.resolve({ ok: true, text: () => Promise.reject(new Error('Disconnected')) }), 'Could not download this track.'],
+        ['malformed XML', () => Promise.resolve(response('<gpx><trk></gpx>')), 'Could not read this GPX file.'],
+        ['non-GPX XML', () => Promise.resolve(response('<html/>')), 'Could not read this GPX file.'],
+    ])('shows a retryable error for %s', async (_, trackFetch, message) => {
+        const { app, mapMock } = await bootstrapApp({ trackFetch });
+        await app.focusTrack(walk.path, walk.name);
+        expect(row(walk).textContent).toContain(message);
+        expect(row(walk).querySelector('.track-retry').hidden).toBe(false);
+        expect(document.getElementById('info-panel').classList.contains('hidden')).toBe(true);
+        expect(mapMock.fitBounds).not.toHaveBeenCalled();
+        expect(global.L.GPX).not.toHaveBeenCalled();
+        global.fetch.mockResolvedValue(response());
+        await app.focusTrack(walk.path, walk.name);
+        expect(row(walk).dataset.loadState).toBe('ready');
+    });
+
+    test.each(['empty', 'throws'])('shows a retryable error for a parser result of %s', async failure => {
+        const { app, gpxMock, mapMock } = await bootstrapApp();
+        if (failure === 'empty') gpxMock.getBounds.mockReturnValue({ isValid: () => false });
+        else global.L.GPX.mockImplementation(() => { throw new Error('Invalid coordinates'); });
+        await app.focusTrack(walk.path, walk.name);
+        expect(row(walk).dataset.loadState).toBe('error');
+        expect(row(walk).querySelector('.track-retry').hidden).toBe(false);
+        expect(gpxMock.addTo).not.toHaveBeenCalled();
+        expect(mapMock.fitBounds).not.toHaveBeenCalled();
+    });
+
+    test('times out a stalled download and allows retry', async () => {
+        const { app } = await bootstrapApp({ trackFetch: (_, { signal }) => new Promise((_, reject) => {
+            signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
+        }) });
+        jest.useFakeTimers();
+        try {
+            const load = app.focusTrack(walk.path, walk.name);
+            await jest.advanceTimersByTimeAsync(30000);
+            await load;
+            expect(row(walk).textContent).toContain('Track load timed out.');
+            global.fetch.mockResolvedValue(response());
+            await app.focusTrack(walk.path, walk.name);
+            expect(row(walk).dataset.loadState).toBe('ready');
+        } finally {
+            jest.useRealTimers();
+        }
+    });
+
+    test('ignores a response body completed after the track is removed', async () => {
+        let finishBody;
+        const body = new Promise(resolve => { finishBody = resolve; });
+        const { app, mapMock } = await bootstrapApp({ trackFetch: () => Promise.resolve({ ok: true, text: () => body }) });
+        const load = app.focusTrack(walk.path, walk.name);
+        await Promise.resolve();
+        app.removeTrack(walk.path);
+        finishBody(validGpx);
+        await load;
+        expect(global.L.GPX).not.toHaveBeenCalled();
+        expect(mapMock.fitBounds).not.toHaveBeenCalled();
+        expect(row(walk).dataset.loadState).toBe('idle');
+    });
+
+    test('replacing a pending layer after a marker toggle ignores its old response', async () => {
+        const pending = deferredFetch();
+        const { app, mapMock } = await bootstrapApp({ trackFetch: pending.fetch });
+        const first = app.focusTrack(walk.path, walk.name);
+        document.getElementById('toggle-start-end-markers').click();
+        expect(pending.requests[0].signal.aborted).toBe(true);
+        pending.requests[1].resolve(response());
+        await settleTrackLoads();
+        pending.requests[0].resolve(response());
+        await first;
+        expect(global.L.GPX).toHaveBeenCalledTimes(1);
+        const options = global.L.GPX.mock.calls[0][1];
+        expect(options.marker_options.startIconUrl).toBe(options.marker_options.shadowUrl);
+        expect(mapMock.fitBounds).toHaveBeenCalledTimes(1);
+        expect(row(walk).dataset.loadState).toBe('ready');
+    });
+
+    test('removing a focused track while another is loading keeps stats hidden until ready', async () => {
+        const pending = deferredFetch();
+        const { app } = await bootstrapApp({ trackFetch: pending.fetch });
+        const first = app.addTrack(walk.path, walk.name);
+        const second = app.addTrack(run.path, run.name);
+        app.removeTrack(walk.path);
+        expect(document.getElementById('info-panel').classList.contains('hidden')).toBe(true);
+        pending.requests[0].resolve(response());
+        pending.requests[1].resolve(response());
+        await Promise.all([first, second]);
+        expect(document.getElementById('track-name').textContent).toBe(run.name);
+        expect(document.getElementById('info-panel').classList.contains('hidden')).toBe(false);
+    });
+});
 
 describe('Map layer selection', () => {
     test('persists selected layer to localStorage on baselayerchange', async () => {
@@ -725,19 +944,19 @@ describe('App Logic', () => {
             expect(list.innerHTML).toContain('No GPX files found');
         });
 
-        test('clicking a file loads it on the map', () => {
+        test('clicking a file loads it on the map', async () => {
             const list = document.getElementById('file-list');
             const item = Array.from(list.children).find(li => li.title === 'Activities/walks/2023-01-02_Walk.gpx');
             item.click();
+            await settleTrackLoads();
 
-            // Should call L.GPX with path
-            expect(global.L.GPX).toHaveBeenCalledWith('/data/Activities/walks/2023-01-02_Walk.gpx', expect.any(Object));
+            expect(global.fetch).toHaveBeenCalledWith('/data/Activities/walks/2023-01-02_Walk.gpx', expect.objectContaining({ signal: expect.any(AbortSignal) }));
+            expect(global.L.GPX).toHaveBeenCalledWith(validGpx, expect.objectContaining({ async: false }));
 
             // Check active class
             expect(item.classList.contains('active')).toBe(true);
 
-            // The mock manually fires 'loaded', which calls updateInfoPanel
-            // Check if info panel was populated
+            // Stats appear after the download and GPX parsing finish.
             expect(document.getElementById('track-name').textContent).toBe('2023-01-02_Walk.gpx');
             expect(document.getElementById('track-distance').textContent).toBe('10.00 km');
         });
@@ -959,9 +1178,10 @@ describe('App Logic', () => {
             expect(list.querySelector('.track-select-cb')).toBeNull();
         });
 
-        test('multi-select adds tracks without removing others', () => {
+        test('multi-select adds tracks without removing others', async () => {
             const toggleBtn = document.getElementById('toggle-multi-track');
             toggleBtn.click();
+            await settleTrackLoads();
 
             const list = document.getElementById('file-list');
             const items = list.querySelectorAll('li:not(.year-separator)');
@@ -975,26 +1195,30 @@ describe('App Logic', () => {
 
             // Click Walk first
             if (cb1) cb1.click();
+            await settleTrackLoads();
             expect(global.L.GPX).toHaveBeenCalledTimes(1);
-            expect(global.L.GPX).toHaveBeenLastCalledWith(expect.stringContaining('Walk'), expect.any(Object));
+            expect(global.fetch).toHaveBeenLastCalledWith(expect.stringContaining('Walk'), expect.any(Object));
 
             // Click second checkbox (Run)
             if (cb2) cb2.click();
+            await settleTrackLoads();
             expect(global.L.GPX).toHaveBeenCalledTimes(2);
-            expect(global.L.GPX).toHaveBeenLastCalledWith(expect.stringContaining('Run'), expect.any(Object));
+            expect(global.fetch).toHaveBeenLastCalledWith(expect.stringContaining('Run'), expect.any(Object));
 
             // Map should have both layers
             expect(mapMock.removeLayer).not.toHaveBeenCalled();
         });
 
-        test('uses inline SVG marker icons for waypoints and start/end', () => {
+        test('uses inline SVG marker icons for waypoints and start/end', async () => {
             const toggleBtn = document.getElementById('toggle-multi-track');
             toggleBtn.click();
+            await settleTrackLoads();
 
             const list = document.getElementById('file-list');
             const item = list.querySelector('li:not(.year-separator)');
             const cb = item.querySelector('.track-select-cb');
             cb.click();
+            await settleTrackLoads();
 
             const firstCallOpts = global.L.GPX.mock.calls[0][1];
             const markerOpts = firstCallOpts.marker_options;
@@ -1006,13 +1230,15 @@ describe('App Logic', () => {
             expect(markerOpts.shadowUrl.startsWith('data:image/svg+xml')).toBe(true);
         });
 
-        test('can hide start/end markers via toggle', () => {
+        test('can hide start/end markers via toggle', async () => {
             const markersToggle = document.getElementById('toggle-start-end-markers');
             markersToggle.click();
+            await settleTrackLoads();
 
             const list = document.getElementById('file-list');
             const item = list.querySelector('li:not(.year-separator)');
             item.click();
+            await settleTrackLoads();
 
             const firstCallOpts = global.L.GPX.mock.calls[0][1];
             const markerOpts = firstCallOpts.marker_options;
@@ -1024,23 +1250,26 @@ describe('App Logic', () => {
             expect(markerOpts.wptIconUrls[''].startsWith('data:image/svg+xml')).toBe(true);
         });
 
-        test('rebuilds loaded tracks when marker visibility changes', () => {
+        test('rebuilds loaded tracks when marker visibility changes', async () => {
             const list = document.getElementById('file-list');
             const item = list.querySelector('li:not(.year-separator)');
             item.click();
+            await settleTrackLoads();
 
             expect(global.L.GPX).toHaveBeenCalledTimes(1);
 
             const markersToggle = document.getElementById('toggle-start-end-markers');
             markersToggle.click();
+            await settleTrackLoads();
 
             expect(mapMock.removeLayer).toHaveBeenCalled();
             expect(global.L.GPX).toHaveBeenCalledTimes(2);
         });
 
-        test('exclusive click in multi-mode removes others', () => {
+        test('exclusive click in multi-mode removes others', async () => {
             const toggleBtn = document.getElementById('toggle-multi-track');
             toggleBtn.click();
+            await settleTrackLoads();
             const list = document.getElementById('file-list');
             const items = list.querySelectorAll('li:not(.year-separator)');
 
@@ -1048,41 +1277,50 @@ describe('App Logic', () => {
             const cb1 = items[0].querySelector('.track-select-cb');
             const cb2 = items[1].querySelector('.track-select-cb');
             if (cb1) cb1.click();
+            await settleTrackLoads();
             if (cb2) cb2.click();
+            await settleTrackLoads();
 
             // Now click the text of the first one
             items[0].click();
+            await settleTrackLoads();
 
             // Should have removed the second track
             expect(mapMock.removeLayer).toHaveBeenCalled();
             // And kept/re-focused the first
         });
 
-        test('disabling multi-mode enforces single track', () => {
+        test('disabling multi-mode enforces single track', async () => {
             const toggleBtn = document.getElementById('toggle-multi-track');
             toggleBtn.click();
+            await settleTrackLoads();
             const list = document.getElementById('file-list');
             const items = list.querySelectorAll('li:not(.year-separator)');
 
             // Load two tracks
             items[0].querySelector('.track-select-cb').click();
+            await settleTrackLoads();
             items[1].querySelector('.track-select-cb').click();
+            await settleTrackLoads();
 
             // Toggle Off
             toggleBtn.click();
+            await settleTrackLoads();
 
             // Should remove all except one (usually the last focused, or first)
             expect(mapMock.removeLayer).toHaveBeenCalled();
         });
 
-        test('uses blue as primary color and rotates colors', () => {
+        test('uses blue as primary color and rotates colors', async () => {
             const toggleBtn = document.getElementById('toggle-multi-track');
             toggleBtn.click();
+            await settleTrackLoads();
             const list = document.getElementById('file-list');
             const items = list.querySelectorAll('li:not(.year-separator)');
 
             // Global L.GPX mock needs to inspect options passed
             items[0].querySelector('.track-select-cb').click();
+            await settleTrackLoads();
 
             // First track should be Blue #0000FF
             const firstCallOpts = global.L.GPX.mock.calls[0][1];
@@ -1090,6 +1328,8 @@ describe('App Logic', () => {
             expect(firstCallOpts.polyline_options.weight).toBe(3);
 
             items[1].querySelector('.track-select-cb').click();
+
+            await settleTrackLoads();
             const secondCallOpts = global.L.GPX.mock.calls[1][1];
             expect(secondCallOpts.polyline_options.color).toBe('#FF0000'); // Red is second in TRACK_COLORS
         });
@@ -1111,7 +1351,7 @@ describe('App Logic', () => {
             expect(titleEl).toBeTruthy();
             expect(titleEl.textContent).toContain(dangerousName);
             expect(list.querySelector('img')).toBeNull();
-            expect(list.innerHTML).not.toContain('<img src=');
+            expect(list.querySelector('.track-retry').getAttribute('aria-label')).toBe(`Retry loading ${dangerousName}.gpx`);
         });
 
         test('renders activity filter chips using textContent', () => {

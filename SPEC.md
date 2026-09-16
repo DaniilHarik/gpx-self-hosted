@@ -1,6 +1,6 @@
 # Self-Hosted GPX Viewer Product Spec
 
-Updated: 2026-07-25
+Updated: 2026-09-16
 
 ## Scope
 
@@ -29,6 +29,8 @@ Setup and configuration documentation belong in `README.md`.
 - File matching is case-insensitive.
 - The API exposes each item with `name`, `path`, `relativePath`, and optional
   cached metadata.
+- `path` is a URL-escaped path, including reserved characters in filenames and
+  folders. `name` and `relativePath` retain their original text for display.
 
 ## Browsing
 
@@ -51,6 +53,14 @@ Setup and configuration documentation belong in `README.md`.
 
 - The map starts at `58.60, 25.01`, zoom `8`.
 - Selecting a track loads its GPX layer, fits its bounds, and opens its stats.
+- A pending track shows `Loading track...` in its row. Download failures,
+  invalid GPX, and files without map points show an error and a `Retry` button.
+  Retry preserves other selected tracks and the failed track's color.
+- Track downloads time out after 30 seconds. Removing or replacing a pending
+  track cancels its request; an obsolete response cannot add a layer, change
+  stats, or move the map. Only the latest requested track may fit the viewport.
+- Stats appear only after a track has loaded successfully. Clicking a pending
+  row reuses its request; clicking a failed row retries it.
 - Single-track mode keeps one track loaded.
 - Multi-track mode exposes row checkboxes and permits additive selection.
 - Loaded tracks use distinct colors and matching list indicators.

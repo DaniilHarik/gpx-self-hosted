@@ -38,6 +38,7 @@ does not include authentication; see [SECURITY.md](SECURITY.md).
 - Separate Activities and Plans views with search, collapsible multi-select
   activity filters, and year grouping.
 - Single-track focus or multi-track comparison with distinct track colors.
+- Track loading feedback and retry controls for failed downloads or invalid GPX.
 - Distance, duration, date, moving speed, and elevation gain/loss.
 - Persistent light/dark theme and base-layer selection.
 - OpenStreetMap, OpenTopoMap, and Maa-amet base layers by default.
@@ -53,6 +54,12 @@ Activity names come from the first folder below the configured activity root.
 Any name is accepted. Backpacking, speed hiking, bikepacking, gravel,
 MTB/mountain biking, ice skating, sailing, overlanding, and flight folders
 receive custom icons.
+
+Filenames and folders can include spaces, Unicode, and URL characters such as
+`#`, `?`, and `%` where the host filesystem permits them. A track that fails to
+load shows an error with a **Retry** button. Fix or restore the file, then retry
+without reloading the page. Downloads time out after 30 seconds, and switching
+tracks cancels requests for tracks removed from the map.
 
 ## Configuration
 

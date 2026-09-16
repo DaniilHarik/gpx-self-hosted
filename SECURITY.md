@@ -1,6 +1,6 @@
 # Security and Reliability
 
-Updated: 2026-07-25
+Updated: 2026-09-16
 
 ## Deployment model
 
@@ -23,6 +23,9 @@ frontend dependencies from third-party CDNs.
 - OpenStreetMap requests use an application-specific `User-Agent`; a valid
   browser `Referer` is forwarded when present.
 - Offline mode prevents upstream tile requests.
+- Browser GPX downloads have a 30-second timeout and are cancelled when their
+  track is removed or replaced. Stale responses cannot update the map or stats.
+  HTTP failures, invalid XML, and empty GPX layers produce retryable row errors.
 
 ## Known risks
 

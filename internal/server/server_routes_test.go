@@ -1,15 +1,83 @@
 package server
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"testing"
 
 	"gpx-self-hosted/internal/config"
+	"gpx-self-hosted/internal/model"
 )
+
+func TestGPXIndexPathsRoundTripReservedFilenames(t *testing.T) {
+	roots := map[string]string{"Activities": t.TempDir(), "Plans": t.TempDir()}
+	names := []string{"route #2.gpx", "literal%2F.gpx", "café +50%.gpx", "route?.gpx"}
+	want := make(map[string]string)
+	for kind, root := range roots {
+		for _, name := range names {
+			if runtime.GOOS == "windows" && strings.Contains(name, "?") {
+				continue // '?' is not a valid Windows filename.
+			}
+			rel := filepath.Join("trips #1 & 50%", name)
+			filename := filepath.Join(root, rel)
+			if err := os.MkdirAll(filepath.Dir(filename), 0755); err != nil {
+				t.Fatal(err)
+			}
+			body := `<gpx><metadata><name>` + name + `</name></metadata></gpx>`
+			if err := os.WriteFile(filename, []byte(body), 0644); err != nil {
+				t.Fatal(err)
+			}
+			want[kind+"/"+filepath.ToSlash(rel)] = body
+		}
+	}
+
+	srv := httptest.NewServer(New(&config.Config{
+		StaticDir: t.TempDir(), ActivitiesDir: roots["Activities"],
+		PlansDir: roots["Plans"], CacheDir: t.TempDir(),
+	}).Handler())
+	t.Cleanup(srv.Close)
+	resp, err := srv.Client().Get(srv.URL + "/api/gpx")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("index status: %d", resp.StatusCode)
+	}
+	var files []model.GPXFile
+	if err := json.NewDecoder(resp.Body).Decode(&files); err != nil {
+		t.Fatal(err)
+	}
+	if len(files) != len(want) {
+		t.Fatalf("got %d files, want %d", len(files), len(want))
+	}
+	for _, file := range files {
+		t.Run(file.RelativePath, func(t *testing.T) {
+			expected, ok := want[file.RelativePath]
+			if !ok || file.Name != filepath.Base(file.RelativePath) {
+				t.Fatalf("display name or relative path changed: %+v", file)
+			}
+			resp, err := srv.Client().Get(srv.URL + file.Path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer resp.Body.Close()
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if resp.StatusCode != http.StatusOK || string(body) != expected {
+				t.Fatalf("index URL %q returned status %d, body %q", file.Path, resp.StatusCode, body)
+			}
+		})
+	}
+}
 
 func TestServerRegistersStaticAndDataRoutes(t *testing.T) {
 	staticDir := t.TempDir()

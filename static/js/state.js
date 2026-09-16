@@ -9,6 +9,7 @@ export const state = {
     map: null, // Initialized in map.js
     loadedTracks: new Map(),
     focusedTrackPath: null,
+    pendingFitTrack: null,
     isMultiTrackMode: false,
     showStartEndMarkers: true,
     allFiles: [],
@@ -55,9 +56,11 @@ export const ui = {
 };
 
 export function resetState() {
+    state.loadedTracks.forEach(track => track.controller?.abort());
     state.map = null;
     state.loadedTracks.clear();
     state.focusedTrackPath = null;
+    state.pendingFitTrack = null;
     state.isMultiTrackMode = false;
     state.showStartEndMarkers = true;
     state.allFiles = [];

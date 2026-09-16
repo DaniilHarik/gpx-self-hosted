@@ -4,6 +4,7 @@ import (
 	"context"
 	"io/fs"
 	"log/slog"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -100,7 +101,7 @@ func (s *Service) ListFiles(ctx context.Context) ([]model.GPXFile, error) {
 
 				files = append(files, model.GPXFile{
 					Name:         d.Name(),
-					Path:         "/data/" + relPath,
+					Path:         (&url.URL{Path: "/data/" + relPath}).EscapedPath(),
 					RelativePath: relPath,
 					Metadata:     metadata,
 				})
