@@ -33,33 +33,30 @@ does not include authentication; see [SECURITY.md](SECURITY.md).
 
 3. Open `http://localhost:8080`.
 
-## Features
+## Usage
 
-- Separate Activities and Plans views with search, collapsible multi-select
-  activity filters, and year grouping.
-- Single-track focus or multi-track comparison with distinct track colors.
-- Track loading feedback and retry controls for failed downloads or invalid GPX.
-- Distance, duration, date, moving speed, and elevation gain/loss.
-- Persistent light/dark theme and base-layer selection.
-- OpenStreetMap, OpenTopoMap, and Maa-amet base layers by default.
-- Quarter-step zoom slider, adjustable zoom speed, coordinate copying, and
-  viewport bounds copying.
-- Optional start/end markers.
-- Polyline and waypoint drawing with GPX 1.1 export.
-- High-resolution PNG export of the visible map and overlays.
-- On-disk GPX metadata and map-tile caches.
-- Cache-only tile serving in offline mode.
+Search by filename or relative path. Activities are grouped by year and sorted
+by the date prefix in their filenames; plans are sorted alphabetically.
+Activity filters use the first folder below the activity root. Any folder name
+is accepted, with custom icons for recognized activities. Refresh the page
+after adding or changing files; there is no upload or live-rescan UI.
 
-Activity names come from the first folder below the configured activity root.
-Any name is accepted. Backpacking, speed hiking, bikepacking, gravel,
-MTB/mountain biking, ice skating, sailing, overlanding, and flight folders
-receive custom icons.
+Select a track to focus the map and view its distance, duration, date, moving
+speed, and elevation gain/loss. Enable multi-select to compare tracks in
+distinct colors. Start/end markers can be hidden separately from GPX waypoints.
+A failed track offers **Retry** after you fix or restore its file. Downloads
+time out after 30 seconds. Filenames may include spaces, Unicode, `#`, `?`, and
+`%` where the host filesystem permits them.
 
-Filenames and folders can include spaces, Unicode, and URL characters such as
-`#`, `?`, and `%` where the host filesystem permits them. A track that fails to
-load shows an error with a **Retry** button. Fix or restore the file, then retry
-without reloading the page. Downloads time out after 30 seconds, and switching
-tracks cancels requests for tracks removed from the map.
+Draw polylines and waypoints, then download them as GPX 1.1. Place an exported
+file in the plans directory to browse it later. The image export downloads a
+2x PNG of the visible map and overlays.
+
+Theme and base-layer choices persist in the browser. Default layers include
+OpenStreetMap, OpenTopoMap, Maa-amet Kaart, and Maa-amet Foto. Use the zoom slider
+or speed presets to adjust navigation. Single-click the map to select
+coordinates, then click the coordinate readout to copy `lat, lng`; double-click
+zooms. The `bbox` control copies viewport bounds as `west,south,east,north`.
 
 ## Configuration
 
@@ -69,6 +66,9 @@ Configuration precedence is:
 2. `config.json`.
 3. `GPX_SELF_HOST_*` environment variables.
 4. Built-in defaults.
+
+`"Offline": false` in JSON does not override `GPX_SELF_HOST_OFFLINE=true`;
+use `-offline=false` to disable it in that case.
 
 ### Command-line flags
 
@@ -111,12 +111,7 @@ folder without modifying it, override the path when starting the server:
 ./start.sh -activities-dir="/absolute/path/to/tracks"
 ```
 
-Startup output reports the effective directories after configuration
-precedence is applied:
-
-```text
-INFO GPX source directories activities_dir=./data/Activities plans_dir=./data/Plans
-```
+Startup logs report the effective activity and plan directories.
 
 `ClientTimeout` is a Go `time.Duration` value and is represented in JSON as
 nanoseconds; `10000000000` is 10 seconds.
@@ -144,23 +139,8 @@ The browser still loads Leaflet, Leaflet.draw, leaflet-gpx, Font Awesome, and
 fonts from CDNs. A warmed tile cache therefore supports cache-only maps but not
 a fully disconnected first page load.
 
-When online, requests to the built-in OpenStreetMap provider use an
-application-specific `User-Agent`. The browser `Referer` is forwarded when
-present.
-
-## Architecture
-
-- `cmd/gpx-self-hosted/`: CLI entrypoint.
-- `internal/config/`: flags, JSON, environment variables, and defaults.
-- `internal/handler/`: HTTP handlers.
-- `internal/server/`: routing and server lifecycle.
-- `internal/service/gpx/`: GPX discovery, parsing, and metadata caching.
-- `internal/service/tiles/`: tile proxying and disk caching.
-- `static/`: vanilla JavaScript SPA, HTML, and CSS.
-
-The server exposes the GPX index, client-safe tile configuration, cache status,
-source GPX files, and proxied map tiles over HTTP. See `SPEC.md` for the
-behavioral contract.
+The [Maa-amet tile ranges](docs/tiles.md) are retained as a manual planning
+reference.
 
 ## Development
 
@@ -175,5 +155,22 @@ Frontend assets require no build step. On Windows, run
 `go run ./cmd/gpx-self-hosted` or build `gpx-self-hosted.exe`; `start.sh` is for
 macOS and Linux.
 
-Product behavior is defined in [SPEC.md](SPEC.md). Contribution guidance is in
-[CONTRIBUTING.md](CONTRIBUTING.md).
+Use GitHub Issues for bug reports and feature requests. Create branches from
+`main` and keep pull requests focused on one change. Format Go with `gofmt`, use
+the standard library where practical, and keep the frontend framework-free
+unless an architecture change is agreed first. Add or update tests whenever
+behavior changes, and run both test suites before submitting a change.
+
+## Project documentation
+
+- [SPEC.md](SPEC.md) records product intent, guarantees, and scope boundaries.
+- [SECURITY.md](SECURITY.md) records deployment assumptions and known risks.
+- [AGENTS.md](AGENTS.md) records contributor workflow and safety rules.
+- [Lessons](tasks/lessons.md) retain recurring user preferences.
+- Architecture decisions explain context, alternatives, and consequences:
+  [on-demand tile caching](docs/adr/0001-cache-tiles-on-demand.md) and
+  [independent GPX source directories](docs/adr/0002-independent-gpx-source-directories.md).
+
+Follow the [change requirements](AGENTS.md#change-requirements) when updating
+documentation. Implementation details and exact behavior belong in code and
+tests.

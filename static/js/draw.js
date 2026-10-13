@@ -100,6 +100,8 @@ export function exportGPX() {
 
     const exportedAt = new Date();
 
+    // Garmin Connect compatibility requires the GPX 1.1 namespace and metadata
+    // block as well as the route's points.
     let gpx = '<?xml version="1.0" encoding="UTF-8"?>\n';
     gpx += '<gpx version="1.1" creator="GPX Offline Viewer" xmlns="http://www.topografix.com/GPX/1/1">\n';
     gpx += '  <metadata>\n';

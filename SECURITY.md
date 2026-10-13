@@ -1,6 +1,4 @@
-# Security and Reliability
-
-Updated: 2026-09-16
+# Deployment boundaries and known risks
 
 ## Deployment model
 
@@ -12,20 +10,6 @@ GPX files remain on the host, but the server exposes the configured activity
 and plan directories under `/data/Activities/` and `/data/Plans/`. Online map
 use sends tile requests to the configured providers. The browser also loads
 frontend dependencies from third-party CDNs.
-
-## Existing controls
-
-- Tile routes accept only a safe provider token, numeric `z/x/y` components,
-  and `.png` or `.jpg`.
-- Tile downloads use configured timeouts and retry limits.
-- Cache writes use a temporary file and atomic rename to avoid publishing
-  partial downloads.
-- OpenStreetMap requests use an application-specific `User-Agent`; a valid
-  browser `Referer` is forwarded when present.
-- Offline mode prevents upstream tile requests.
-- Browser GPX downloads have a 30-second timeout and are cancelled when their
-  track is removed or replaced. Stale responses cannot update the map or stats.
-  HTTP failures, invalid XML, and empty GPX layers produce retryable row errors.
 
 ## Known risks
 

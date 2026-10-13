@@ -1,136 +1,52 @@
-# Self-Hosted GPX Viewer Product Spec
+# Product intent
 
-Updated: 2026-09-16
+## Purpose
 
-## Scope
+Provide a personal GPX archive viewer for a local machine or trusted network.
+Users can browse recorded activities without uploading their tracks to a third
+party, compare routes, and sketch plans for export.
 
-The product is a privacy-oriented GPX archive for a local machine or trusted
-network. A Go server discovers GPX files, serves a vanilla JavaScript map UI,
-proxies base-map tiles, and caches GPX metadata and tiles on disk.
+Recorded activities and planned routes are separate collections. Activities
+derive their category from the first folder below their configured source
+directory. Plans are not activity categories. The directories can be configured
+independently so existing archives can stay where their owner manages them.
+See the [source-directory decision](docs/adr/0002-independent-gpx-source-directories.md)
+for the storage constraints behind this choice.
 
-The primary use cases are:
+## Product guarantees
 
-- Browse recorded tracks without uploading them to a third party.
-- Keep planned routes separate from completed activities.
-- Compare several tracks on one map.
-- Draw simple routes or waypoints and export them as GPX.
+- Discover nested GPX files in both source directories, including filenames
+  with spaces, Unicode, and URL-reserved characters.
+- Support both single-track focus and additive multi-track comparison. The
+  focused track drives the statistics; tracks remain visually distinguishable.
+- Show loading and retryable failure states. Retry preserves other selected
+  tracks and the failed track's color. Removed or replaced requests cannot
+  change map layers, statistics, or the viewport after becoming obsolete.
+- Provide distance, duration, date, moving speed, and elevation gain/loss only
+  after a track loads successfully.
+- Export drawn routes and waypoints as GPX 1.1 with its namespace and metadata,
+  and export the visible map and overlays as a PNG.
+- Preserve explicit theme and base-layer choices across browser sessions.
+  Initialize the theme before rendering to avoid a flash of the wrong theme.
+- In offline tile mode, never contact upstream tile providers. Cached tiles
+  remain available; missing tiles return `404`.
+- Support map workflows in current desktop and mobile browsers.
 
-Setup and configuration documentation belong in `README.md`.
+## Scope boundaries
 
-## Content model
+The app does not upload tracks, provide an upload UI, or rescan the file list
+live. Users manage source files outside the app and refresh the browser after
+file changes. Drawing produces downloads for users to save themselves.
 
-- Activity tracks are `.gpx` files below the configured activity root, which
-  defaults to `data/Activities/`.
-- Plans are `.gpx` files below the configured plans root, which defaults to
-  `data/Plans/`.
-- Activity and plan roots can be configured independently.
-- Nested folders are supported.
-- An activity is derived from the first folder below the activity root.
-- File matching is case-insensitive.
-- The API exposes each item with `name`, `path`, `relativePath`, and optional
-  cached metadata.
-- `path` is a URL-escaped path, including reserved characters in filenames and
-  folders. `name` and `relativePath` retain their original text for display.
+Offline tile mode is cache-only map serving. It does not promise a fully
+disconnected first page load because browser dependencies still come from CDNs.
+There is no bulk tile-download or prewarming feature.
+The [prewarming removal decision](docs/adr/0001-cache-tiles-on-demand.md) records
+why the previous feature was removed.
 
-## Browsing
+The app has no authentication or authorization. Its local/trusted-network scope
+does not make every file under a configured source directory safe to expose;
+deployment constraints and known risks are recorded in [SECURITY.md](SECURITY.md).
 
-- The sidebar contains search, an `Activities | Plans` view switch, filters, the
-  track list, theme control, marker control, and multi-select control.
-- Search matches the filename or relative path, case-insensitively.
-- Activities are sorted by a date prefix in the filename, newest first, and
-  grouped by year.
-- Activity filters are collapsed by default behind a compact control that
-  summarizes the active selections. They support multiple selections, and
-  `All` clears them.
-- Plans are excluded from activity filters, sorted alphabetically by relative
-  path, and are not grouped by year.
-- The Plans control is disabled when no plan files exist.
-- Known activity names receive custom icons; unknown names use a route icon.
-- A row shows an icon, optional date, cleaned title, and optional nested folder
-  label.
-
-## Track display
-
-- The map starts at `58.60, 25.01`, zoom `8`.
-- Selecting a track loads its GPX layer, fits its bounds, and opens its stats.
-- A pending track shows `Loading track...` in its row. Download failures,
-  invalid GPX, and files without map points show an error and a `Retry` button.
-  Retry preserves other selected tracks and the failed track's color.
-- Track downloads time out after 30 seconds. Removing or replacing a pending
-  track cancels its request; an obsolete response cannot add a layer, change
-  stats, or move the map. Only the latest requested track may fit the viewport.
-- Stats appear only after a track has loaded successfully. Clicking a pending
-  row reuses its request; clicking a failed row retries it.
-- Single-track mode keeps one track loaded.
-- Multi-track mode exposes row checkboxes and permits additive selection.
-- Loaded tracks use distinct colors and matching list indicators.
-- The focused track drives the stats panel.
-- Start and end markers can be hidden across loaded tracks; GPX waypoints remain
-  visible.
-- Stats include distance, duration, local start date, moving speed, and smoothed
-  elevation gain/loss. Duration prefers moving time.
-
-## Map controls
-
-- The default base layer is Maa-amet Kaart.
-- The default provider set includes OpenStreetMap, OpenTopoMap, Maa-amet Kaart,
-  and Maa-amet Foto.
-- Base-layer choice persists in `localStorage`.
-- Explicit light and dark themes are available. The saved theme overrides the
-  system preference and is initialized before rendering to avoid FOUC.
-- The bottom controls include `-` and `+`, a quarter-step zoom slider, the
-  current zoom value, zoom speed, coordinate readout, and `bbox`.
-- `Fast`, `Normal`, and `Precise` synchronize button, double-click, gesture snap,
-  and wheel zoom behavior.
-- The coordinate readout starts from the map center. A single map click targets
-  a point; clicking the readout copies the displayed `lat, lng`.
-- `bbox` copies viewport bounds as `west,south,east,north`.
-
-## Drawing and export
-
-- Leaflet Draw exposes polyline and marker tools.
-- GPX export is disabled until a drawing exists.
-- Export produces GPX 1.1 with the Topografix namespace and metadata: polylines
-  become track segments and markers become waypoints.
-- Map image export produces a 2x PNG of the current viewport, including visible
-  tiles, tracks, drawings, and markers.
-
-## Server behavior
-
-- Configuration precedence is CLI, JSON, environment variables, then defaults.
-- Startup logs report the configured activity and plan source directories.
-- `GET /api/gpx` lists activity tracks and plans.
-- `GET /api/tile-config` returns client-safe provider settings, the initial
-  provider, and offline state with `Cache-Control: no-store`.
-- `GET /api/status` returns process-lifetime tile cache counters with
-  `Cache-Control: no-store`.
-- `/data/Activities/` and `/data/Plans/` serve source GPX files from their
-  independently configured roots.
-- `/tiles/{provider}/{z}/{x}/{y}.(png|jpg)` validates the provider token, numeric
-  coordinates, and extension before accessing the cache or upstream.
-- Cached tiles retain the requested extension.
-- Online cache misses are retried up to the configured limit. Upstream `404`
-  responses are not cached.
-- Offline mode never contacts upstream providers; a cache miss returns `404`.
-- Tile cache writes use a temporary file and atomic rename.
-- OpenStreetMap requests use an application `User-Agent` and forward a valid
-  browser `Referer` when present.
-
-## Quality requirements
-
-- GPX data is not uploaded to third parties.
-- The backend uses the Go standard library; the frontend remains framework-free.
-- The UI supports current desktop and mobile browsers.
-- Go tests cover configuration, handlers, GPX discovery/parsing/cache, server
-  routing, and tile proxy/cache behavior.
-- Jest and jsdom tests cover frontend behavior. Coverage is collected from
-  `static/js/`.
-
-## Known limits
-
-- Browser dependencies are loaded from CDNs, so offline tile mode does not make
-  the initial page load fully disconnected.
-- File changes require a browser refresh; there is no upload or live-rescan UI.
-
-See [SECURITY.md](SECURITY.md) for deployment constraints and known security or
-reliability risks.
+[README.md](README.md) explains setup, configuration, and usage. Exact controls,
+defaults, API shapes, and failure cases are described in code and tests.

@@ -108,6 +108,8 @@ func (s *Service) GetTile(ctx context.Context, providerName, z, x, yPng, referer
 			err = reqErr
 			break
 		}
+		// These policy headers belong to OpenStreetMap; do not forward the browser
+		// Referer to other providers solely because they share this proxy.
 		if providerName == "openstreetmap" {
 			req.Header.Set("User-Agent", tileProxyUserAgent)
 			if sanitizedReferer := sanitizeReferer(referer); sanitizedReferer != "" {
