@@ -1087,6 +1087,28 @@ describe('App Logic', () => {
             expect(list.innerHTML).toContain('Run');
         });
 
+        test.each(['Plans', 'plans'])('keeps the activity category %s separate from the plans collection', async category => {
+            const activity = { name: 'recorded.gpx', path: `/data/Activities/${category}/recorded.gpx`, relativePath: `Activities/${category}/recorded.gpx` };
+            const plan = { name: 'planned.gpx', path: '/data/Plans/planned.gpx', relativePath: 'Plans/planned.gpx' };
+            const rows = () => Array.from(document.querySelectorAll('#file-list li[data-path]'), li => li.dataset.path);
+
+            await bootstrapApp({ gpxFiles: [activity] });
+            expect(rows()).toEqual([activity.path]);
+            expect(findViewButton('plans').disabled).toBe(true);
+            expect(findChipByLabel(category).querySelector('.activity-count').textContent).toBe('1');
+            findChipByLabel(category).click();
+            expect(rows()).toEqual([activity.path]);
+
+            await bootstrapApp({ gpxFiles: [...defaultGpxFiles, activity, plan] });
+            findChipByLabel(category).click();
+            expect(rows()).toEqual([activity.path]);
+            findViewButton('plans').click();
+            expect(rows()).toEqual([plan.path]);
+            findViewButton('activities').click();
+            expect(rows()).toContain(activity.path);
+            expect(rows()).not.toContain(plan.path);
+        });
+
         test('renders formatted titles, dates, icons and toggles active state', () => {
             const customFiles = app.addActivityToFiles([
                 { name: '2013-06-07-09_Morning-ride.gpx', path: '/data/Activities/backpacking/2013-06-07-09_Morning-ride.gpx', relativePath: 'Activities/backpacking/2013-06-07-09_Morning-ride.gpx' },

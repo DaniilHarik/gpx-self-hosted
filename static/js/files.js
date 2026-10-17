@@ -84,7 +84,7 @@ export function setupActivityFilters(activities) {
 
     const counts = {};
     state.allFiles.forEach(f => {
-        if ((f.activity || '').toLowerCase() !== 'plans') {
+        if (f.collection !== 'plans') {
             counts[f.activity] = (counts[f.activity] || 0) + 1;
         }
     });
@@ -170,7 +170,7 @@ export function applyFilters() {
         const name = (f.name || '').toLowerCase();
         const rel = (f.relativePath || '').toLowerCase();
         const matchesSearch = name.includes(state.searchTerm) || rel.includes(state.searchTerm);
-        const isPlan = (f.activity || '').toLowerCase() === 'plans';
+        const isPlan = f.collection === 'plans';
         if (state.currentView === 'plans' && !isPlan) return false;
         if (state.currentView === 'activities' && isPlan) return false;
 
@@ -194,8 +194,8 @@ export async function fetchFiles() {
         const response = await fetch('/api/gpx');
         const files = await response.json();
         const filesWithActivity = utils.addActivityToFiles(files || []);
-        state.hasPlanFiles = filesWithActivity.some(f => (f.activity || '').toLowerCase() === 'plans');
-        const activities = new Set(filesWithActivity.filter(f => (f.activity || '').toLowerCase() !== 'plans').map(f => f.activity));
+        state.hasPlanFiles = filesWithActivity.some(f => f.collection === 'plans');
+        const activities = new Set(filesWithActivity.filter(f => f.collection !== 'plans').map(f => f.activity));
 
         state.allFiles = filesWithActivity.sort((a, b) => {
             const dateA = utils.parseDateFromFilename(a.name);

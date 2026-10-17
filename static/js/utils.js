@@ -91,7 +91,9 @@ export function getActivityIcon(activity, activityIconMap) {
 export function addActivityToFiles(files) {
     return files.map(file => {
         const activity = deriveActivity(file.relativePath);
-        return { ...file, activity };
+        const root = (file.relativePath || '').split('/')[0].toLowerCase();
+        const collection = root === 'plans' ? 'plans' : 'activities';
+        return { ...file, activity, collection };
     });
 }
 
