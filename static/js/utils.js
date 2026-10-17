@@ -152,12 +152,16 @@ export function calculateSmoothedElevation(data) {
     let gain = 0;
     let loss = 0;
     const threshold = 0.5;
+    let reference = smoothed[0];
 
     for (let i = 1; i < smoothed.length; i++) {
-        const diff = smoothed[i] - smoothed[i - 1];
+        // Accumulate changes from the last accepted height. Comparing only
+        // adjacent samples discards an entire gradual climb or descent.
+        const diff = smoothed[i] - reference;
         if (Math.abs(diff) > threshold) {
             if (diff > 0) gain += diff;
             else loss += Math.abs(diff);
+            reference = smoothed[i];
         }
     }
 
