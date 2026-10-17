@@ -68,3 +68,18 @@ test('still reports available elevation after real GPX parsing', async () => {
     await loadXML(`<gpx><trk><trkseg>${points}</trkseg></trk></gpx>`);
     expect(document.querySelector('#track-elevation-gain').textContent).toMatch(/^\+\d+ m$/);
 });
+
+test('keeps separate track segments disconnected and excludes the gap from distance', async () => {
+    const segment = lon => `<trkseg><trkpt lat="0" lon="${lon}"><ele>0</ele></trkpt><trkpt lat="0" lon="${lon + 0.01}"><ele>0</ele></trkpt></trkseg>`;
+    const layer = await loadXML(`<gpx><trk>${segment(0)}${segment(10)}</trk></gpx>`);
+    expect(layer.get_distance()).toBeCloseTo(2223.9, 0);
+    expect(document.querySelector('#track-distance').textContent).toBe('2.22 km');
+    const lines = [];
+    function visit(item) {
+        if (item instanceof L.Polyline) lines.push(item.getLatLngs());
+        else if (item.eachLayer) item.eachLayer(visit);
+    }
+    visit(layer);
+    expect(lines).toHaveLength(2);
+    expect(lines.map(points => points.map(point => point.lng))).toEqual([[0, 0.01], [10, 10.01]]);
+});

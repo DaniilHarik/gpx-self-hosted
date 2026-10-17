@@ -26,6 +26,7 @@ for the storage constraints behind this choice.
 - Provide distance, duration, date, moving speed, and elevation gain/loss only
   after a track loads successfully. Missing optional elevation data must not
   prevent loading or displaying the other statistics.
+- Preserve gaps between GPX track segments in the map and distance totals.
 - Export drawn routes and waypoints as GPX 1.1 with its namespace and metadata,
   and export the visible map and overlays as a PNG.
 - Preserve explicit theme and base-layer choices across browser sessions.

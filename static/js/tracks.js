@@ -281,6 +281,7 @@ async function loadTrack(path, track) {
 function createTrackLayer(xml, color) {
     return new L.GPX(xml, {
         async: false,
+        gpx_options: { joinTrackSegments: false },
         marker_options: getMarkerOptions(),
         polyline_options: {
             color: color,
