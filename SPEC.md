@@ -31,6 +31,7 @@ for the storage constraints behind this choice.
   Initialize the theme before rendering to avoid a flash of the wrong theme.
 - In offline tile mode, never contact upstream tile providers. Cached tiles
   remain available; missing tiles return `404`.
+- Refuse startup when an existing configuration file cannot be read or decoded.
 - Support map workflows in current desktop and mobile browsers.
 
 ## Scope boundaries

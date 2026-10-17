@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -36,7 +37,7 @@ type TileProviderConfig struct {
 func Load() *Config {
 	cfg, err := Parse(flag.CommandLine, os.Args[1:])
 	if err != nil {
-		log.Fatalf("failed to parse config flags: %v", err)
+		log.Fatalf("failed to load configuration: %v", err)
 	}
 	return cfg
 }
@@ -103,38 +104,47 @@ func Parse(fs *flag.FlagSet, args []string) (*Config, error) {
 		sources = append(sources, "Environment Variables")
 	}
 
-	// Override with JSON if config.json exists
-	if data, err := os.ReadFile("config.json"); err == nil {
-		var jsonConfig Config
-		if err := json.Unmarshal(data, &jsonConfig); err == nil {
-			sources = append(sources, "config.json")
-			if jsonConfig.Port != "" {
-				defaultConfig.Port = jsonConfig.Port
-			}
-			if jsonConfig.StaticDir != "" {
-				defaultConfig.StaticDir = jsonConfig.StaticDir
-			}
-			if jsonConfig.ActivitiesDir != "" {
-				defaultConfig.ActivitiesDir = jsonConfig.ActivitiesDir
-			}
-			if jsonConfig.PlansDir != "" {
-				defaultConfig.PlansDir = jsonConfig.PlansDir
-			}
-			if jsonConfig.CacheDir != "" {
-				defaultConfig.CacheDir = jsonConfig.CacheDir
-			}
-			if jsonConfig.ClientTimeout != 0 {
-				defaultConfig.ClientTimeout = jsonConfig.ClientTimeout
-			}
-			if jsonConfig.MaxRetries != 0 {
-				defaultConfig.MaxRetries = jsonConfig.MaxRetries
-			}
-			if jsonConfig.Offline {
-				defaultConfig.Offline = jsonConfig.Offline
-			}
-			if len(jsonConfig.Providers) > 0 {
-				defaultConfig.Providers = jsonConfig.Providers
-			}
+	// A missing optional file is allowed; an unreadable or invalid file must
+	// not silently reset settings such as Offline or the source directories.
+	data, err := os.ReadFile("config.json")
+	if err != nil && !os.IsNotExist(err) {
+		return nil, fmt.Errorf("read config.json: %w", err)
+	}
+	if err == nil {
+		var jsonConfig *Config
+		if err := json.Unmarshal(data, &jsonConfig); err != nil {
+			return nil, fmt.Errorf("decode config.json: %w", err)
+		}
+		if jsonConfig == nil {
+			return nil, fmt.Errorf("decode config.json: expected an object")
+		}
+		sources = append(sources, "config.json")
+		if jsonConfig.Port != "" {
+			defaultConfig.Port = jsonConfig.Port
+		}
+		if jsonConfig.StaticDir != "" {
+			defaultConfig.StaticDir = jsonConfig.StaticDir
+		}
+		if jsonConfig.ActivitiesDir != "" {
+			defaultConfig.ActivitiesDir = jsonConfig.ActivitiesDir
+		}
+		if jsonConfig.PlansDir != "" {
+			defaultConfig.PlansDir = jsonConfig.PlansDir
+		}
+		if jsonConfig.CacheDir != "" {
+			defaultConfig.CacheDir = jsonConfig.CacheDir
+		}
+		if jsonConfig.ClientTimeout != 0 {
+			defaultConfig.ClientTimeout = jsonConfig.ClientTimeout
+		}
+		if jsonConfig.MaxRetries != 0 {
+			defaultConfig.MaxRetries = jsonConfig.MaxRetries
+		}
+		if jsonConfig.Offline {
+			defaultConfig.Offline = jsonConfig.Offline
+		}
+		if len(jsonConfig.Providers) > 0 {
+			defaultConfig.Providers = jsonConfig.Providers
 		}
 	}
 

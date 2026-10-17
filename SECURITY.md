@@ -11,6 +11,9 @@ and plan directories under `/data/Activities/` and `/data/Plans/`. Online map
 use sends tile requests to the configured providers. The browser also loads
 frontend dependencies from third-party CDNs.
 
+An unreadable or invalid `config.json` prevents startup, so a configuration
+error cannot silently discard offline mode or the configured source directories.
+
 ## Known risks
 
 - The GPX data routes use `http.FileServer`, which permits directory listings

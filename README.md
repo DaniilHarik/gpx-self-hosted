@@ -71,6 +71,9 @@ Configuration precedence is:
 `"Offline": false` in JSON does not override `GPX_SELF_HOST_OFFLINE=true`;
 use `-offline=false` to disable it in that case.
 
+The server starts without `config.json` if it is absent. If the file exists but
+cannot be read or decoded, startup fails with an error rather than using defaults.
+
 ### Command-line flags
 
 ```text

@@ -3,9 +3,37 @@ package config
 import (
 	"flag"
 	"os"
+	"strings"
 	"testing"
 	"time"
 )
+
+func TestParse_InvalidJSONConfig(t *testing.T) {
+	for _, content := range []string{`{"Offline":true,`, `{"Offline":true,"ClientTimeout":"10s"}`, `null`, `[]`} {
+		t.Run(content, func(t *testing.T) {
+			t.Chdir(t.TempDir())
+			if err := os.WriteFile("config.json", []byte(content), 0600); err != nil {
+				t.Fatal(err)
+			}
+			cfg, err := Parse(flag.NewFlagSet("test", flag.ContinueOnError), nil)
+			if err == nil || !strings.Contains(err.Error(), "decode config.json") || cfg != nil {
+				t.Fatalf("invalid file must fail instead of using defaults: cfg=%+v, err=%v", cfg, err)
+			}
+		})
+	}
+}
+
+func TestParse_UnreadableJSONConfig(t *testing.T) {
+	t.Chdir(t.TempDir())
+	// A directory produces a read error on every supported OS, even as root.
+	if err := os.Mkdir("config.json", 0700); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Parse(flag.NewFlagSet("test", flag.ContinueOnError), nil)
+	if err == nil || !strings.Contains(err.Error(), "read config.json") || cfg != nil {
+		t.Fatalf("unreadable config must fail: cfg=%+v, err=%v", cfg, err)
+	}
+}
 
 func TestParse_Defaults(t *testing.T) {
 	fs := flag.NewFlagSet("test", flag.ContinueOnError)
