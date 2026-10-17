@@ -17,6 +17,7 @@ for the storage constraints behind this choice.
 
 - Discover nested GPX files in both source directories, including filenames
   with spaces, Unicode, and URL-reserved characters.
+- Invalid numeric metadata in one file must not prevent listing other files.
 - Support both single-track focus and additive multi-track comparison. The
   focused track drives the statistics; tracks remain visually distinguishable.
 - Show loading and retryable failure states. Retry preserves other selected

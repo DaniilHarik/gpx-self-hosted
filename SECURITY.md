@@ -14,6 +14,10 @@ frontend dependencies from third-party CDNs.
 An unreadable or invalid `config.json` prevents startup, so a configuration
 error cannot silently discard offline mode or the configured source directories.
 
+GPX metadata rejects non-finite values and out-of-range coordinates. A file
+with invalid numeric metadata remains listed without metadata and does not
+prevent other files from appearing in the archive.
+
 ## Known risks
 
 - The GPX data routes use `http.FileServer`, which permits directory listings

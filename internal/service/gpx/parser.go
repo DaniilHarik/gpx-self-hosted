@@ -2,6 +2,7 @@ package gpx
 
 import (
 	"encoding/xml"
+	"fmt"
 	"io"
 	"math"
 	"time"
@@ -66,6 +67,9 @@ func ParseGPX(r io.Reader) (model.GPXMetadata, error) {
 			var firstPtInSeg bool = true
 
 			for _, pt := range seg.Trkpt {
+				if !validCoordinates(pt.Lat, pt.Lon) || !isFinite(pt.Ele) {
+					return model.GPXMetadata{}, fmt.Errorf("invalid track point coordinates or elevation")
+				}
 				updateBounds(&meta.Bounds, pt.Lat, pt.Lon)
 				hasPoints = true
 
@@ -101,6 +105,9 @@ func ParseGPX(r io.Reader) (model.GPXMetadata, error) {
 
 	// Process waypoints for bounds if needed
 	for _, wpt := range g.Wpt {
+		if !validCoordinates(wpt.Lat, wpt.Lon) {
+			return model.GPXMetadata{}, fmt.Errorf("invalid waypoint coordinates")
+		}
 		updateBounds(&meta.Bounds, wpt.Lat, wpt.Lon)
 		hasPoints = true
 	}
@@ -109,6 +116,9 @@ func ParseGPX(r io.Reader) (model.GPXMetadata, error) {
 		meta.Bounds = model.BoundsDTO{}
 	}
 
+	if !isFinite(totalDistance) || !isFinite(totalGain) || !isFinite(totalLoss) {
+		return model.GPXMetadata{}, fmt.Errorf("GPX metadata exceeds numeric range")
+	}
 	meta.Distance = totalDistance
 	meta.ElevationGain = totalGain
 	meta.ElevationLoss = totalLoss
@@ -120,11 +130,27 @@ func ParseGPX(r io.Reader) (model.GPXMetadata, error) {
 	return meta, nil
 }
 
+func isFinite(value float64) bool {
+	return !math.IsNaN(value) && !math.IsInf(value, 0)
+}
+
+func validCoordinates(lat, lon float64) bool {
+	return isFinite(lat) && isFinite(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180
+}
+
 func updateBounds(b *model.BoundsDTO, lat, lon float64) {
-	if lat > b.North { b.North = lat }
-	if lat < b.South { b.South = lat }
-	if lon > b.East { b.East = lon }
-	if lon < b.West { b.West = lon }
+	if lat > b.North {
+		b.North = lat
+	}
+	if lat < b.South {
+		b.South = lat
+	}
+	if lon > b.East {
+		b.East = lon
+	}
+	if lon < b.West {
+		b.West = lon
+	}
 }
 
 func haversine(lat1, lon1, lat2, lon2 float64) float64 {
@@ -137,6 +163,8 @@ func haversine(lat1, lon1, lat2, lon2 float64) float64 {
 	a := math.Sin(dphi/2)*math.Sin(dphi/2) +
 		math.Cos(phi1)*math.Cos(phi2)*
 			math.Sin(dlambda/2)*math.Sin(dlambda/2)
+	// Roundoff near antipodal points can put a just outside [0, 1].
+	a = math.Max(0, math.Min(1, a))
 	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
 
 	return R * c

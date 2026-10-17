@@ -15,6 +15,39 @@ import (
 	"gpx-self-hosted/internal/model"
 )
 
+func TestGPXIndexIsolatesInvalidNumericMetadata(t *testing.T) {
+	activities := t.TempDir()
+	for name, body := range map[string]string{
+		"valid.gpx":   `<gpx><trk><trkseg><trkpt lat="58" lon="25"/><trkpt lat="59" lon="26"/></trkseg></trk></gpx>`,
+		"invalid.gpx": `<gpx><trk><trkseg><trkpt lat="NaN" lon="25"/><trkpt lat="59" lon="26"/></trkseg></trk></gpx>`,
+	} {
+		if err := os.WriteFile(filepath.Join(activities, name), []byte(body), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	cfg := &config.Config{ActivitiesDir: activities, PlansDir: t.TempDir(), CacheDir: t.TempDir()}
+	for range 2 { // Exercise both freshly parsed and persisted metadata.
+		h := New(cfg).Handler()
+		rr := httptest.NewRecorder()
+		h.ServeHTTP(rr, httptest.NewRequest("GET", "/api/gpx", nil))
+		var files []model.GPXFile
+		if rr.Code != http.StatusOK {
+			t.Fatalf("catalogue failed: %d %s", rr.Code, rr.Body.String())
+		}
+		if err := json.Unmarshal(rr.Body.Bytes(), &files); err != nil {
+			t.Fatal(err)
+		}
+		if len(files) != 2 {
+			t.Fatalf("expected both files to remain discoverable, got %d", len(files))
+		}
+		for _, file := range files {
+			if (file.Metadata != nil) != (file.Name == "valid.gpx") {
+				t.Fatalf("incorrect metadata isolation: %+v", file)
+			}
+		}
+	}
+}
+
 func TestGPXIndexPathsRoundTripReservedFilenames(t *testing.T) {
 	roots := map[string]string{"Activities": t.TempDir(), "Plans": t.TempDir()}
 	names := []string{"route #2.gpx", "literal%2F.gpx", "café +50%.gpx", "route?.gpx"}

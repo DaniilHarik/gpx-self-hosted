@@ -1,9 +1,44 @@
 package gpx
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 )
+
+func TestParseGPXRejectsInvalidNumbers(t *testing.T) {
+	for _, point := range []string{
+		`<trkpt lat="NaN" lon="25"/>`,
+		`<trkpt lat="+Inf" lon="25"/>`,
+		`<trkpt lat="91" lon="25"/>`,
+		`<trkpt lat="58" lon="-181"/>`,
+		`<trkpt lat="58" lon="NaN"/>`,
+		`<trkpt lat="58" lon="25"><ele>NaN</ele></trkpt>`,
+		`<trkpt lat="58" lon="25"><ele>-Inf</ele></trkpt>`,
+		`<trkpt lat="58" lon="25"><ele>1e308</ele></trkpt><trkpt lat="59" lon="25"><ele>-1e308</ele></trkpt>`,
+	} {
+		t.Run(point, func(t *testing.T) {
+			if _, err := ParseGPX(strings.NewReader(`<gpx><trk><trkseg>` + point + `</trkseg></trk></gpx>`)); err == nil {
+				t.Fatal("expected invalid numeric data to be rejected")
+			}
+		})
+	}
+	for _, point := range []string{`<wpt lat="Inf" lon="25"/>`, `<wpt lat="58" lon="181"/>`} {
+		if _, err := ParseGPX(strings.NewReader(`<gpx>` + point + `</gpx>`)); err == nil {
+			t.Fatal("expected invalid waypoint to be rejected")
+		}
+	}
+}
+
+func TestParseGPXAntipodalPointsRemainJSONEncodable(t *testing.T) {
+	meta, err := ParseGPX(strings.NewReader(`<gpx><trk><trkseg><trkpt lat="89" lon="0"/><trkpt lat="-89" lon="180"/></trkseg></trk></gpx>`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := json.Marshal(meta); err != nil {
+		t.Fatalf("valid coordinates produced invalid metadata: %v", err)
+	}
+}
 
 func TestParseGPX(t *testing.T) {
 	gpxData := `<?xml version="1.0" encoding="UTF-8"?>
