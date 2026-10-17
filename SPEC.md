@@ -23,7 +23,8 @@ for the storage constraints behind this choice.
   tracks and the failed track's color. Removed or replaced requests cannot
   change map layers, statistics, or the viewport after becoming obsolete.
 - Provide distance, duration, date, moving speed, and elevation gain/loss only
-  after a track loads successfully.
+  after a track loads successfully. Missing optional elevation data must not
+  prevent loading or displaying the other statistics.
 - Export drawn routes and waypoints as GPX 1.1 with its namespace and metadata,
   and export the visible map and overlays as a PNG.
 - Preserve explicit theme and base-layer choices across browser sessions.

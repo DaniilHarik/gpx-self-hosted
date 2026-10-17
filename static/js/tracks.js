@@ -172,10 +172,24 @@ export function updateInfoPanel(gpx, name) {
     ui.trackDate.textContent = start ? start.toLocaleDateString() : 'N/A';
     ui.trackSpeed.textContent = `${gpx.get_moving_speed().toFixed(1)} km/h`;
 
-    const elevationData = gpx.get_elevation_data();
-    const { gain, loss } = utils.calculateSmoothedElevation(elevationData);
-    ui.trackElevationGain.textContent = `+${Math.round(gain)} m`;
-    ui.trackElevationLoss.textContent = `-${Math.round(loss)} m`;
+    // leaflet-gpx 1.7 formats elevation labels with null.toFixed when a
+    // track starts without optional <ele> values. Keep other statistics and
+    // loading-state updates available even when elevation cannot be read.
+    let elevationData;
+    try {
+        elevationData = gpx.get_elevation_data();
+    } catch {
+        elevationData = null;
+    }
+    const hasElevation = elevationData?.length > 0 && elevationData.every(point => Number.isFinite(point[1]));
+    if (hasElevation) {
+        const { gain, loss } = utils.calculateSmoothedElevation(elevationData);
+        ui.trackElevationGain.textContent = `+${Math.round(gain)} m`;
+        ui.trackElevationLoss.textContent = `-${Math.round(loss)} m`;
+    } else {
+        ui.trackElevationGain.textContent = 'N/A';
+        ui.trackElevationLoss.textContent = 'N/A';
+    }
 
     ui.infoPanel.classList.remove('hidden');
 }

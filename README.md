@@ -47,6 +47,7 @@ distinct colors. Start/end markers can be hidden separately from GPX waypoints.
 A failed track offers **Retry** after you fix or restore its file. Downloads
 time out after 30 seconds. Filenames may include spaces, Unicode, `#`, `?`, and
 `%` where the host filesystem permits them.
+Tracks without elevation data still load; unavailable elevation totals show `N/A`.
 
 Draw polylines and waypoints, then download them as GPX 1.1. Place an exported
 file in the plans directory to browse it later. The image export downloads a

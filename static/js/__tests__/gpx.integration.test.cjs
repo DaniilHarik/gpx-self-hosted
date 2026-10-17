@@ -1,0 +1,70 @@
+const fs = require('node:fs');
+const path = require('node:path');
+
+// Match the browser dependencies in index.html. The parser must be real:
+// mocks previously hid failures on the application's own elevation-free exports.
+global.L = require('leaflet');
+require('leaflet-gpx');
+
+let state, addTrack, renderFileList, exportGPX;
+const file = { name: 'drawn.gpx', path: '/data/Plans/drawn.gpx', relativePath: 'Plans/drawn.gpx', activity: 'Plans' };
+
+beforeEach(async () => {
+    document.body.innerHTML = fs.readFileSync(path.join(__dirname, '../../index.html'), 'utf8').match(/<body>([\s\S]*)<\/body>/)[1];
+    const stateModule = await import('../state.js');
+    stateModule.resetState();
+    state = stateModule.state;
+    ({ addTrack } = await import('../tracks.js'));
+    ({ renderFileList } = await import('../files.js'));
+    ({ exportGPX } = await import('../draw.js'));
+    state.map = { addLayer: jest.fn(), removeLayer: jest.fn(), fitBounds: jest.fn() };
+    state.drawnItems = new L.FeatureGroup();
+    URL.createObjectURL = jest.fn(() => 'blob:test');
+    URL.revokeObjectURL = jest.fn();
+    jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    renderFileList([file]);
+});
+
+afterEach(() => jest.restoreAllMocks());
+
+async function exportDrawnXML() {
+    exportGPX();
+    const blob = URL.createObjectURL.mock.calls[0][0];
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsText(blob);
+    });
+}
+
+async function loadXML(xml) {
+    global.fetch = jest.fn(async () => ({ ok: true, text: async () => xml }));
+    await addTrack(file.path, file.name);
+    const track = state.loadedTracks.get(file.path);
+    expect(track.status).toBe('ready');
+    expect(track.layer.getBounds().isValid()).toBe(true);
+    expect(document.querySelector('#file-list li[data-path]').dataset.loadState).toBe('ready');
+    expect(document.querySelector('.track-load-status').hidden).toBe(true);
+    expect(document.querySelector('#info-panel').classList.contains('hidden')).toBe(false);
+    return track.layer;
+}
+
+test('loads the application\'s own drawn export without elevation', async () => {
+    state.drawnItems.addLayer(new L.Polyline([[58.6, 25], [58.7, 25.1]]));
+    await loadXML(await exportDrawnXML());
+    expect(document.querySelector('#track-distance').textContent).not.toBe('0.00 km');
+    expect(document.querySelector('#track-elevation-gain').textContent).toBe('N/A');
+    expect(document.querySelector('#track-elevation-loss').textContent).toBe('N/A');
+});
+
+test('loads tracks whose initial elevation is missing', async () => {
+    await loadXML('<gpx><trk><trkseg><trkpt lat="58" lon="25"/><trkpt lat="59" lon="26"><ele>20</ele></trkpt></trkseg></trk></gpx>');
+    expect(document.querySelector('#track-elevation-gain').textContent).toBe('N/A');
+});
+
+test('still reports available elevation after real GPX parsing', async () => {
+    const points = [0, 10, 20, 30, 40, 50].map((ele, i) => `<trkpt lat="58" lon="${25 + i / 100}"><ele>${ele}</ele></trkpt>`).join('');
+    await loadXML(`<gpx><trk><trkseg>${points}</trkseg></trk></gpx>`);
+    expect(document.querySelector('#track-elevation-gain').textContent).toMatch(/^\+\d+ m$/);
+});
