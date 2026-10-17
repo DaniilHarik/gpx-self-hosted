@@ -119,7 +119,7 @@ export function removeTrack(path) {
 export function updateInfoPanelWithTrack(path) {
     const track = state.loadedTracks.get(path);
     if (track?.status === 'ready') {
-        updateInfoPanel(track.layer, track.name);
+        updateInfoPanel(track.layer, track.name, track.hasTimestamps);
     } else {
         ui.infoPanel.classList.add('hidden');
     }
@@ -160,17 +160,19 @@ export function updateTrackListItem(li) {
     }
 }
 
-export function updateInfoPanel(gpx, name) {
+export function updateInfoPanel(gpx, name, hasTimestamps = true) {
     ui.trackName.textContent = name;
     ui.trackDistance.textContent = `${(gpx.get_distance() / 1000).toFixed(2)} km`;
 
     const totalTimeMs = gpx.get_total_time();
     const movingTimeMs = gpx.get_moving_time();
-    ui.trackDuration.textContent = utils.formatDuration(movingTimeMs > 0 ? movingTimeMs : totalTimeMs);
+    const duration = movingTimeMs > 0 ? movingTimeMs : totalTimeMs;
+    ui.trackDuration.textContent = hasTimestamps && Number.isFinite(duration) ? utils.formatDuration(duration) : '-';
 
     const start = gpx.get_start_time();
-    ui.trackDate.textContent = start ? start.toLocaleDateString() : 'N/A';
-    ui.trackSpeed.textContent = `${gpx.get_moving_speed().toFixed(1)} km/h`;
+    ui.trackDate.textContent = hasTimestamps && Number.isFinite(start?.getTime()) ? start.toLocaleDateString() : 'N/A';
+    const speed = gpx.get_moving_speed();
+    ui.trackSpeed.textContent = hasTimestamps && movingTimeMs > 0 && Number.isFinite(speed) ? `${speed.toFixed(1)} km/h` : 'N/A';
 
     // leaflet-gpx 1.7 formats elevation labels with null.toFixed when a
     // track starts without optional <ele> values. Keep other statistics and
@@ -246,6 +248,14 @@ async function loadTrack(path, track) {
         if (xml.querySelector('parsererror') || xml.documentElement.localName !== 'gpx') {
             throw new Error('Invalid GPX document');
         }
+
+        // leaflet-gpx substitutes 1970 for missing point times. Check the
+        // source so invented dates and speeds never become user statistics.
+        const points = Array.from(xml.querySelectorAll('trkpt, rtept'));
+        track.hasTimestamps = points.length > 0 && points.every(point => {
+            const time = point.querySelector('time')?.textContent;
+            return time && Number.isFinite(Date.parse(time));
+        });
 
         // Parse downloaded XML synchronously so parser failures stay in this
         // try/catch. Leaflet GPX's URL loader does not report HTTP failures.

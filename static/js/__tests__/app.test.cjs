@@ -1600,7 +1600,7 @@ describe('App Logic', () => {
             app.updateInfoPanel(zeroValues, 'Zero Track');
             expect(document.getElementById('track-duration').textContent).toBe('-');
             expect(document.getElementById('track-date').textContent).toBe('N/A');
-            expect(document.getElementById('track-speed').textContent).toBe('0.0 km/h');
+            expect(document.getElementById('track-speed').textContent).toBe('N/A');
         });
     });
 

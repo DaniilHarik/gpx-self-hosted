@@ -56,6 +56,25 @@ test('loads the application\'s own drawn export without elevation', async () => 
     expect(document.querySelector('#track-distance').textContent).not.toBe('0.00 km');
     expect(document.querySelector('#track-elevation-gain').textContent).toBe('N/A');
     expect(document.querySelector('#track-elevation-loss').textContent).toBe('N/A');
+    expect(document.querySelector('#track-date').textContent).toBe('N/A');
+    expect(document.querySelector('#track-speed').textContent).toBe('N/A');
+    expect(document.querySelector('#track-duration').textContent).toBe('-');
+});
+
+test.each(['', '<time>not-a-date</time>'])('does not invent timing statistics when a point time is missing or invalid: %s', async time => {
+    await loadXML(`<gpx><trk><trkseg><trkpt lat="58" lon="25"><time>2026-10-17T08:00:00Z</time></trkpt><trkpt lat="58" lon="25.001">${time}</trkpt></trkseg></trk></gpx>`);
+    expect(document.querySelector('#track-date').textContent).toBe('N/A');
+    expect(document.querySelector('#track-speed').textContent).toBe('N/A');
+    expect(document.querySelector('#track-duration').textContent).toBe('-');
+});
+
+test.each(['2026-10-17', '1970-01-01'])('preserves recorded timing, including legitimate epoch dates: %s', async date => {
+    const start = `${date}T00:00:00Z`;
+    const layer = await loadXML(`<gpx><trk><trkseg><trkpt lat="58" lon="25"><time>${start}</time></trkpt><trkpt lat="58" lon="25.001"><time>${date}T00:00:10Z</time></trkpt></trkseg></trk></gpx>`);
+    expect(document.querySelector('#track-date').textContent).toBe(new Date(start).toLocaleDateString());
+    expect(document.querySelector('#track-speed').textContent).toBe(`${layer.get_moving_speed().toFixed(1)} km/h`);
+    expect(document.querySelector('#track-speed').textContent).not.toContain('Infinity');
+    expect(document.querySelector('#track-duration').textContent).toBe('0m');
 });
 
 test('loads tracks whose initial elevation is missing', async () => {
