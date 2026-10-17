@@ -83,3 +83,20 @@ test('keeps separate track segments disconnected and excludes the gap from dista
     expect(lines).toHaveLength(2);
     expect(lines.map(points => points.map(point => point.lng))).toEqual([[0, 0.01], [10, 10.01]]);
 });
+
+test.each([
+    ['track', 'waypoint', 'track', 'waypoint'],
+    ['waypoint', 'track', 'waypoint', 'track'],
+])('exports GPX schema order regardless of creation order: %j', async (...order) => {
+    order.forEach((kind, i) => state.drawnItems.addLayer(kind === 'waypoint'
+        ? new L.Marker([58 + i / 100, 25])
+        : new L.Polyline([[58 + i / 100, 25], [58 + i / 100, 25.01]])));
+    const xml = await exportDrawnXML();
+    const doc = new DOMParser().parseFromString(xml, 'application/xml');
+    expect(doc.querySelector('parsererror')).toBeNull();
+    expect(doc.documentElement.namespaceURI).toBe('http://www.topografix.com/GPX/1/1');
+    expect(Array.from(doc.documentElement.children, el => el.localName)).toEqual(['metadata', 'wpt', 'wpt', 'trk', 'trk']);
+    expect(doc.querySelectorAll('trkpt')).toHaveLength(4);
+    expect(doc.querySelectorAll('wpt')).toHaveLength(2);
+    await loadXML(xml);
+});

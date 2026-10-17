@@ -109,6 +109,13 @@ export function exportGPX() {
     gpx += `    <time>${exportedAt.toISOString()}</time>\n`;
     gpx += '  </metadata>\n';
 
+    // GPX 1.1 requires all waypoints before tracks, regardless of draw order.
+    state.drawnItems.eachLayer(function (layer) {
+        if (layer instanceof L.Marker) {
+            const latlng = layer.getLatLng();
+            gpx += `  <wpt lat="${latlng.lat}" lon="${latlng.lng}"><name>Waypoint</name></wpt>\n`;
+        }
+    });
     state.drawnItems.eachLayer(function (layer) {
         if (layer instanceof L.Polyline) {
             gpx += '  <trk>\n    <name>Drawn Track</name>\n    <trkseg>\n';
@@ -117,9 +124,6 @@ export function exportGPX() {
                 gpx += `      <trkpt lat="${latlng.lat}" lon="${latlng.lng}"></trkpt>\n`;
             });
             gpx += '    </trkseg>\n  </trk>\n';
-        } else if (layer instanceof L.Marker) {
-            const latlng = layer.getLatLng();
-            gpx += `  <wpt lat="${latlng.lat}" lon="${latlng.lng}"><name>Waypoint</name></wpt>\n`;
         }
     });
 
